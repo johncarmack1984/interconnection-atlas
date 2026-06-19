@@ -1,0 +1,43 @@
+{
+  "name": "interconnection-atlas",
+  "version": "0.1.0",
+  "description": "Interactive D3 map of US grid interconnection: a hosting-capacity choropleth with the interconnection queue and ISO/RTO territories overlaid.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "dev": "bun --filter interconnection-atlas-examples dev",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "dependencies": {
+    "d3": "^7.9.0"
+  },
+  "devDependencies": {
+    "@types/d3": "^7.4.3",
+    "@types/geojson": "^7946.0.14",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.7.2"
+  },
+  "workspaces": [
+    "examples"
+  ]
+}
