@@ -6,6 +6,9 @@ import { fileURLToPath } from "node:url"
 const fromHere = (p: string) => fileURLToPath(new URL(p, import.meta.url))
 
 export default defineConfig({
+  // GitHub Pages serves this demo from a project subpath (/interconnection-atlas/).
+  // CI sets DEPLOY_BASE; local dev and local builds stay at the root "/".
+  base: process.env.DEPLOY_BASE ?? "/",
   plugins: [react()],
   resolve: {
     alias: {
