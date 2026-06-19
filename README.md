@@ -2,7 +2,9 @@
 
 An interactive **D3 map of US grid interconnection**: a hosting-capacity choropleth with the interconnection queue and ISO/RTO territories layered on top, plus a metric toggle and a region-scoped detail panel.
 
-![US Interconnection Atlas](docs/cover.png)
+**[Open the live demo →](https://johncarmack1984.github.io/interconnection-atlas/)** — runs entirely in the browser on synthetic data.
+
+[![US Interconnection Atlas](docs/cover.png)](https://johncarmack1984.github.io/interconnection-atlas/)
 
 ## Why this exists
 
