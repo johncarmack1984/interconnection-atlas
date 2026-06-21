@@ -4,6 +4,9 @@ dist/
 *.log
 .DS_Store
 
+# Cached raw upstream data the vendoring script downloads (outputs are committed)
+examples/scripts/.cache/
+
 # Local Claude Code config (not part of the project)
 CLAUDE.md
 .claude/

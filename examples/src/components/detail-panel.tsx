@@ -6,7 +6,7 @@ import {
   STATUS_ORDER,
   type QueueProject,
 } from "interconnection-atlas"
-import type { StateDatum } from "../data/generate"
+import type { Metric, StateDatum } from "../data/dataset"
 
 interface Segment {
   label: string
@@ -46,12 +46,14 @@ export function DetailPanel({
   projects,
   states,
   statesById,
+  metrics,
   selectedStateId,
   onClear,
 }: {
   projects: QueueProject[]
   states: StateDatum[]
   statesById: Map<string, StateDatum>
+  metrics: Metric[]
   selectedStateId: string | null
   onClear: () => void
 }) {
@@ -62,30 +64,35 @@ export function DetailPanel({
     [projects, sel]
   )
 
-  const stats = useMemo(() => {
-    const count = scoped.length
-    const withdrawn = scoped.filter((p) => p.status === "withdrawn").length
-    const fuel: Segment[] = FUEL_ORDER.map((f) => ({
-      label: FUEL_META[f].label,
-      color: FUEL_META[f].color,
-      value: scoped.filter((p) => p.fuel === f).reduce((s, p) => s + p.capacityMw, 0),
-    }))
-    const status: Segment[] = STATUS_ORDER.map((s) => ({
-      label: STATUS_META[s].label,
-      color: STATUS_META[s].color,
-      value: scoped.filter((p) => p.status === s).length,
-    }))
-    const queueGw = sel ? sel.queueGw : states.reduce((s, x) => s + x.queueGw, 0)
-    const wait = sel ? sel.queueWaitMonths : median(states.map((x) => x.queueWaitMonths))
-    return {
-      count,
-      withdrawalRate: count ? withdrawn / count : 0,
-      fuel,
-      status,
-      queueGw,
-      wait,
-    }
-  }, [scoped, sel, states])
+  const fuel = useMemo<Segment[]>(
+    () =>
+      FUEL_ORDER.map((f) => ({
+        label: FUEL_META[f].label,
+        color: FUEL_META[f].color,
+        value: scoped.filter((p) => p.fuel === f).reduce((s, p) => s + p.capacityMw, 0),
+      })),
+    [scoped]
+  )
+  const status = useMemo<Segment[]>(
+    () =>
+      STATUS_ORDER.map((s) => ({
+        label: STATUS_META[s].label,
+        color: STATUS_META[s].color,
+        value: scoped.filter((p) => p.status === s).length,
+      })),
+    [scoped]
+  )
+
+  // One stat per dataset metric — scoped to the selected state, or rolled up
+  // nationally via the metric's own aggregator.
+  const metricStats = metrics.map((mt) => {
+    const v = sel
+      ? sel.values[mt.key] ?? 0
+      : mt.aggregate
+        ? mt.aggregate(states)
+        : states.reduce((s, x) => s + (x.values[mt.key] ?? 0), 0)
+    return { key: mt.key, label: mt.short, value: `${mt.format(v)}${mt.unit ? ` ${mt.unit}` : ""}` }
+  })
 
   return (
     <aside className="panel">
@@ -109,22 +116,18 @@ export function DetailPanel({
       )}
 
       <div className="stat-grid">
-        <Stat label="Queue volume" value={`${fmtNum(stats.queueGw)} GW`} />
-        {sel ? (
-          <Stat label="Hosting headroom" value={`${fmtNum(sel.hostingCapacityMw)} MW`} />
-        ) : (
-          <Stat label="Regions" value={String(states.length)} />
-        )}
-        <Stat label="Median wait" value={`${stats.wait} mo`} />
         <Stat
-          label="Withdrawal rate"
-          value={`${Math.round(stats.withdrawalRate * 100)}%`}
-          hint={`${stats.count} projects shown`}
+          label="Projects"
+          value={scoped.length.toLocaleString()}
+          hint={sel ? undefined : `across ${states.length} states`}
         />
+        {metricStats.map((s) => (
+          <Stat key={s.key} label={s.label} value={s.value} />
+        ))}
       </div>
 
-      <MixBar title="Capacity by type" segments={stats.fuel} unit="MW" />
-      <MixBar title="Requests by status" segments={stats.status} unit="" />
+      <MixBar title="Capacity by type" segments={fuel} unit="MW" />
+      <MixBar title="Requests by status" segments={status} unit="" />
 
       <p className="panel-foot">
         {sel
@@ -143,17 +146,6 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
       {hint && <div className="stat-hint">{hint}</div>}
     </div>
   )
-}
-
-function median(xs: number[]) {
-  if (!xs.length) return 0
-  const s = [...xs].sort((a, b) => a - b)
-  const m = Math.floor(s.length / 2)
-  return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2)
-}
-
-function fmtNum(n: number) {
-  return n.toLocaleString("en-US")
 }
 
 function fmtAmount(value: number, unit: string) {

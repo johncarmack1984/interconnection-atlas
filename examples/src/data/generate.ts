@@ -6,30 +6,20 @@ import type {
   IsoOutlineCollection,
   QueueProject,
   QueueStatus,
-  RegionCollection,
 } from "interconnection-atlas"
-import { FUEL_META } from "interconnection-atlas"
+import {
+  RAMPS,
+  compact,
+  isPlaceable,
+  loadRegions,
+  medianOf,
+  round0,
+  sumOf,
+  type AtlasDataset,
+  type Metric,
+  type StateDatum,
+} from "./dataset"
 import { ISO_META, OUTLINED_ISOS, isoForState } from "./iso-regions"
-
-export interface StateDatum {
-  id: string
-  name: string
-  iso: string
-  /** Available interconnection / hosting headroom, MW. */
-  hostingCapacityMw: number
-  /** Median time a request waits in this state's queue, months. */
-  queueWaitMonths: number
-  /** Total nameplate capacity sitting in the active queue, GW. */
-  queueGw: number
-}
-
-export interface AtlasData {
-  regions: RegionCollection
-  isoOutlines: IsoOutlineCollection
-  states: StateDatum[]
-  statesById: Map<string, StateDatum>
-  projects: QueueProject[]
-}
 
 // Deterministic PRNG so the atlas is identical on every load (stable demo +
 // screenshots). Math.random is intentionally avoided.
@@ -96,59 +86,83 @@ const ISO_QUEUE_BUMP: Record<string, number> = {
   SPP: 1.2,
 }
 
-export function buildAtlasData(seed = 42): AtlasData {
+// Each metric owns its color ramp + formatting; the national roll-up matches how
+// the metric reads (capacity / queue sum, wait takes the median).
+const SYNTHETIC_METRICS: Metric[] = [
+  {
+    key: "capacity",
+    short: "Hosting capacity",
+    hint: "Available interconnection headroom (MW)",
+    label: "Available hosting capacity (MW)",
+    interpolator: RAMPS.green,
+    format: compact,
+    unit: "MW",
+    aggregate: sumOf("capacity"),
+  },
+  {
+    key: "wait",
+    short: "Queue wait",
+    hint: "Median time a request waits in study (months)",
+    label: "Median queue wait (months)",
+    interpolator: RAMPS.orange,
+    format: round0,
+    unit: "mo",
+    aggregate: medianOf("wait"),
+  },
+  {
+    key: "queue",
+    short: "Queue volume",
+    hint: "Active nameplate capacity in queue (GW)",
+    label: "Active queue volume (GW)",
+    interpolator: RAMPS.purple,
+    format: round0,
+    unit: "GW",
+    aggregate: sumOf("queue"),
+  },
+]
+
+/** Seeded, illustrative dataset — geometry is real (us-atlas), but every capacity
+ *  / queue number is synthetic, shaped to echo real ISO patterns. ISO outlines
+ *  use the simplified one-per-state merge (contrast the real footprints). */
+export function buildSyntheticDataset(seed = 42): AtlasDataset {
   const rng = mulberry32(seed)
-  // topojson's published types are awkward to satisfy from a raw JSON import;
-  // the shapes are correct at runtime, so cast at this single seam.
-  /* eslint-disable @typescript-eslint/no-explicit-any */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const topo = statesTopo as any
   const statesObj = topo.objects.states
+  const regions = loadRegions()
 
-  const regions = topojson.feature(topo, statesObj) as unknown as RegionCollection
-
-  // Merge each ISO's member states into one boundary outline.
-  const geometries: Array<{ id: string; properties: { name: string } }> =
-    statesObj.geometries
+  const geometries: Array<{ id: string; properties: { name: string } }> = statesObj.geometries
   const isoOutlines: IsoOutlineCollection = {
     type: "FeatureCollection",
     features: OUTLINED_ISOS.map((iso) => {
       const members = geometries.filter((g) => isoForState(g.properties.name) === iso)
-      const merged = topojson.merge(topo, members as any)
+      const merged = topojson.merge(topo, members as never)
       return {
         type: "Feature" as const,
         geometry: merged,
-        properties: {
-          iso,
-          name: ISO_META[iso].name,
-          color: ISO_META[iso].color,
-        },
+        properties: { iso, name: ISO_META[iso].name, color: ISO_META[iso].color },
       }
     }),
   }
 
-  // Only place projects in states geoAlbersUsa can actually draw (excludes PR
-  // and other territories, FIPS >= 60).
-  const placeable = regions.features.filter((f) => Number(f.id) < 60)
+  const placeable = regions.features.filter((f) => isPlaceable(f.id))
 
-  // Per-state metrics.
   const states: StateDatum[] = placeable.map((f) => {
     const name = f.properties.name
     const iso = isoForState(name)
-    const queueGw = Math.round(
-      (3 + Math.pow(rng(), 2.2) * 200) * (ISO_QUEUE_BUMP[iso] ?? 1)
-    )
-    const tightness = 1 - (Math.min(queueGw, 250) / 250) * 0.45
-    const hostingCapacityMw = Math.round((500 + rng() * 12000) * tightness / 50) * 50
-    const queueWaitMonths = Math.round(
+    const queue = Math.round((3 + Math.pow(rng(), 2.2) * 200) * (ISO_QUEUE_BUMP[iso] ?? 1))
+    const tightness = 1 - (Math.min(queue, 250) / 250) * 0.45
+    const capacity = Math.round(((500 + rng() * 12000) * tightness) / 50) * 50
+    const wait = Math.round(
       Math.max(16, Math.min(84, ISO_META[iso].waitBaseMonths + (rng() - 0.5) * 16))
     )
-    return { id: String(f.id), name, iso, hostingCapacityMw, queueWaitMonths, queueGw }
+    return { id: String(f.id), name, iso, values: { capacity, wait, queue } }
   })
   const statesById = new Map(states.map((s) => [s.id, s]))
 
   // Weighted state pool (more queue volume → more queued projects).
   const featureById = new Map(placeable.map((f) => [String(f.id), f]))
-  const statePool: Array<[StateDatum, number]> = states.map((s) => [s, s.queueGw])
+  const statePool: Array<[StateDatum, number]> = states.map((s) => [s, s.values.queue])
 
   const N = 240
   const projects: QueueProject[] = []
@@ -187,7 +201,5 @@ export function buildAtlasData(seed = 42): AtlasData {
     })
   }
 
-  return { regions, isoOutlines, states, statesById, projects }
+  return { source: "synthetic", regions, isoOutlines, states, statesById, projects, metrics: SYNTHETIC_METRICS }
 }
-
-export { FUEL_META }

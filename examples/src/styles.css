@@ -136,6 +136,25 @@ body {
   color: var(--ink-dim);
 }
 
+.caption a {
+  color: var(--ink-dim);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.caption a:hover {
+  color: var(--ink);
+}
+
+/* Masthead controls (source + metric toggles, stacked) ------------------ */
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
 /* Detail panel ---------------------------------------------------------- */
 
 .panel {

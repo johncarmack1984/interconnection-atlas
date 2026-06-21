@@ -1,0 +1,21 @@
+{
+  "generatedNote": "Vendored by scripts/build-real-data.ts — do not edit by hand.",
+  "isoOutlines": {
+    "source": "HIFLD Control Areas — balancing-authority footprints (public domain)",
+    "features": 7
+  },
+  "projects": {
+    "source": "EIA-860M April 2026 — Planned generators (public domain)",
+    "plotted": 2065,
+    "plannedRows": 2258,
+    "dropped": {
+      "state": 2,
+      "mw": 1,
+      "latlon": 0,
+      "fuel": 190
+    }
+  },
+  "states": {
+    "withProposed": 51
+  }
+}

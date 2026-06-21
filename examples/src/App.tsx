@@ -1,58 +1,41 @@
 import { useMemo, useState } from "react"
 import * as d3 from "d3"
 import { InterconnectionAtlas } from "interconnection-atlas"
-import { buildAtlasData, type StateDatum } from "./data/generate"
-import { MetricToggle, type MetricOption } from "./components/metric-toggle"
+import { buildSyntheticDataset } from "./data/generate"
+import { loadRealDataset, REAL_META } from "./data/real"
+import type { SourceKey } from "./data/dataset"
+import { MetricToggle } from "./components/metric-toggle"
 import { DetailPanel } from "./components/detail-panel"
 
-type MetricKey = "capacity" | "wait" | "queue"
-
-// Dark-theme sequential ramps: low values sit near the map background, high
-// values glow. One hue per metric so a glance reads the metric, not just a state.
-const INTERP: Record<MetricKey, (t: number) => string> = {
-  capacity: d3.interpolateRgbBasis(["#152330", "#1f6f4f", "#57d98e"]),
-  wait: d3.interpolateRgbBasis(["#152330", "#7a3b2e", "#e8835f"]),
-  queue: d3.interpolateRgbBasis(["#152330", "#3a3a6b", "#9b8cf0"]),
-}
-
-const ACCESSOR: Record<MetricKey, (s: StateDatum) => number> = {
-  capacity: (s) => s.hostingCapacityMw,
-  wait: (s) => s.queueWaitMonths,
-  queue: (s) => s.queueGw,
-}
-
-const LABEL: Record<MetricKey, string> = {
-  capacity: "Available hosting capacity (MW)",
-  wait: "Median queue wait (months)",
-  queue: "Active queue volume (GW)",
-}
-
-const compact = (n: number) =>
-  n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(Math.round(n))
-
-const FORMAT: Record<MetricKey, (n: number) => string> = {
-  capacity: compact,
-  wait: (n) => String(Math.round(n)),
-  queue: (n) => String(Math.round(n)),
-}
-
-const METRIC_OPTIONS: ReadonlyArray<MetricOption<MetricKey>> = [
-  { key: "capacity", short: "Hosting capacity", hint: "Available interconnection headroom (MW)" },
-  { key: "wait", short: "Queue wait", hint: "Median time a request waits in study (months)" },
-  { key: "queue", short: "Queue volume", hint: "Active nameplate capacity in queue (GW)" },
+const SOURCE_OPTIONS = [
+  { key: "real" as SourceKey, short: "Real data", hint: "EIA-860M proposed generators + HIFLD ISO footprints" },
+  { key: "synthetic" as SourceKey, short: "Synthetic", hint: "Seeded, illustrative data — deterministic on every load" },
 ]
 
 export default function App() {
-  const data = useMemo(() => buildAtlasData(42), [])
-  const [metric, setMetric] = useState<MetricKey>("capacity")
+  // Both datasets are bundled and cheap to build, so they're ready up front and
+  // the toggle is an instant client-side swap — no fetch, fully offline.
+  const synthetic = useMemo(() => buildSyntheticDataset(42), [])
+  const real = useMemo(() => loadRealDataset(), [])
+
+  const [source, setSource] = useState<SourceKey>("real")
+  const [metricKey, setMetricKey] = useState<string>(real.metrics[0].key)
   const [selected, setSelected] = useState<string | null>(null)
 
+  const data = source === "real" ? real : synthetic
+  // Metric keys differ between datasets; fall back to the first if it's missing.
+  const metric = data.metrics.find((mt) => mt.key === metricKey) ?? data.metrics[0]
+
+  const changeSource = (s: SourceKey) => {
+    setSource(s)
+    setMetricKey((s === "real" ? real : synthetic).metrics[0].key)
+    setSelected(null)
+  }
+
   const m = useMemo(() => {
-    const accessor = ACCESSOR[metric]
-    const vals = data.states.map(accessor)
-    const domain: [number, number] = [d3.min(vals) ?? 0, d3.max(vals) ?? 1]
-    const values = new Map(data.states.map((s) => [s.id, accessor(s)]))
-    return { values, domain, interpolator: INTERP[metric], label: LABEL[metric], format: FORMAT[metric] }
+    const vals = data.states.map((s) => s.values[metric.key] ?? 0)
+    const values = new Map(data.states.map((s) => [s.id, s.values[metric.key] ?? 0]))
+    return { values, domain: [d3.min(vals) ?? 0, d3.max(vals) ?? 1] as [number, number] }
   }, [data, metric])
 
   return (
@@ -66,7 +49,10 @@ export default function App() {
             Hosting capacity, the interconnection queue, and ISO/RTO territories — in one D3 map.
           </p>
         </div>
-        <MetricToggle options={METRIC_OPTIONS} value={metric} onChange={setMetric} />
+        <div className="controls">
+          <MetricToggle options={SOURCE_OPTIONS} value={source} onChange={changeSource} />
+          <MetricToggle options={data.metrics} value={metric.key} onChange={setMetricKey} />
+        </div>
       </header>
 
       <section className="board">
@@ -76,33 +62,51 @@ export default function App() {
             isoOutlines={data.isoOutlines}
             values={m.values}
             domain={m.domain}
-            colorInterpolator={m.interpolator}
-            valueLabel={m.label}
-            formatValue={m.format}
+            colorInterpolator={metric.interpolator}
+            valueLabel={metric.label}
+            formatValue={metric.format}
             projects={data.projects}
             selectedStateId={selected}
             onSelectState={setSelected}
           />
-          <p className="caption">
-            Circles are interconnection-queue requests, sized by capacity and colored by status.{" "}
-            <strong>Illustrative synthetic data</strong> — shaped to match real ISO queue dynamics
-            (solar + storage dominant, heavy withdrawal, ERCOT fast / PJM slow), not actual filings.
-          </p>
+          {source === "real" ? (
+            <p className="caption">
+              <strong>Real public data.</strong> Choropleth and circles are{" "}
+              {REAL_META.projects.plotted.toLocaleString()} proposed generators from{" "}
+              <a href="https://www.eia.gov/electricity/data/eia860m" target="_blank" rel="noreferrer">
+                EIA-860M
+              </a>{" "}
+              (Apr 2026); ISO/RTO outlines are real footprints from{" "}
+              <a href="https://hifld-geoplatform.hub.arcgis.com" target="_blank" rel="noreferrer">
+                HIFLD
+              </a>
+              . Proposed generators are a <strong>subset</strong> of the full queue — large loads / data
+              centers, withdrawn requests, and true wait-time / hosting-capacity aren&rsquo;t in any public
+              project-level source.
+            </p>
+          ) : (
+            <p className="caption">
+              Circles are interconnection-queue requests, sized by capacity and colored by status.{" "}
+              <strong>Illustrative synthetic data</strong> — shaped to match real ISO queue dynamics
+              (solar + storage dominant, heavy withdrawal, ERCOT fast / PJM slow), not actual filings.
+            </p>
+          )}
         </div>
 
         <DetailPanel
           projects={data.projects}
           states={data.states}
           statesById={data.statesById}
+          metrics={data.metrics}
           selectedStateId={selected}
           onClear={() => setSelected(null)}
         />
       </section>
 
       <footer className="colophon">
-        Adapts an interactive market-targeting choropleth pattern, redirected at
-        grid interconnection. <code>d3-geo</code> · <code>topojson</code> · <code>us-atlas</code> ·
-        React.
+        Adapts an interactive market-targeting choropleth pattern, redirected at grid interconnection.{" "}
+        <code>d3-geo</code> · <code>topojson</code> · <code>us-atlas</code> · <code>EIA-860M</code> ·{" "}
+        <code>HIFLD</code> · React.
       </footer>
     </main>
   )
