@@ -1,7 +1,6 @@
 import {
   memo,
   useCallback,
-  useEffect,
   useId,
   useMemo,
   useRef,
@@ -184,21 +183,17 @@ export function InterconnectionAtlas({
     setTip({ ...t, x: e.clientX - (rect?.left ?? 0), y: e.clientY - (rect?.top ?? 0) })
   }, [])
 
-  // Coalesce pointer-move tooltip updates to one per animation frame: dragging the
-  // cursor across the point layer would otherwise fire a setState per pointermove.
-  const moveRaf = useRef(0)
+  // Track the cursor on every pointer-move so the tooltip stays lively. The point
+  // layer is memoized (<QueuePoints>), so a per-move parent re-render only touches
+  // the tooltip + the ~50 state paths — cheap enough that throttling isn't needed.
   const moveTip = useCallback((clientX: number, clientY: number) => {
-    cancelAnimationFrame(moveRaf.current)
-    moveRaf.current = requestAnimationFrame(() =>
-      setTip((t) => {
-        if (!t) return t
-        const rect = wrapRef.current?.getBoundingClientRect()
-        return { ...t, x: clientX - (rect?.left ?? 0), y: clientY - (rect?.top ?? 0) }
-      })
-    )
+    setTip((t) => {
+      if (!t) return t
+      const rect = wrapRef.current?.getBoundingClientRect()
+      return { ...t, x: clientX - (rect?.left ?? 0), y: clientY - (rect?.top ?? 0) }
+    })
   }, [])
   const hideTip = useCallback(() => setTip(null), [])
-  useEffect(() => () => cancelAnimationFrame(moveRaf.current), [])
 
   const stateRows = (v: number | undefined): Array<[string, string]> => [
     [valueLabel, v == null ? "n/a" : formatValue(v)],
@@ -382,13 +377,15 @@ export function InterconnectionAtlas({
           onLeave={hideTip}
         />
 
+        {/* Top band over the Great Lakes — the widest gap clear of geometry
+            (bottom-left is the AK/HI insets; the NW corner is Washington). */}
         <ChoroplethLegend
           interpolator={colorInterpolator}
           domain={domain}
           label={valueLabel}
           format={formatValue}
-          x={26}
-          y={height - 86}
+          x={420}
+          y={28}
         />
         <StatusLegend x={width - 168} y={height - 116} />
       </svg>
