@@ -57,9 +57,17 @@ export function techToFuel(tech: string): Fuel | null {
 //   T/U/V approved / under construction          -> active
 //   TS    built, not yet in commercial service   -> operational
 export type Status = "active" | "under-study" | "operational"
-export function statusFor(raw: string): Status {
+// The recognized EIA development-status codes. Anything else still buckets as
+// "active", but build-real-data counts + logs the unknowns so a new EIA code
+// surfaces on the next re-vendor rather than being silently mislabeled.
+export const KNOWN_STATUS_CODES = new Set(["P", "L", "T", "U", "V", "TS"])
+// Pull the leading-parens code from a cell like "(P) Planned for installation…".
+export function parseStatusCode(raw: string): string {
   const m = raw.match(/^\(([A-Z]+)\)/)
-  const c = m ? m[1] : raw.trim().toUpperCase()
+  return m ? m[1] : raw.trim().toUpperCase()
+}
+export function statusFor(raw: string): Status {
+  const c = parseStatusCode(raw)
   if (c === "P" || c === "L") return "under-study"
   if (c === "TS") return "operational"
   return "active"

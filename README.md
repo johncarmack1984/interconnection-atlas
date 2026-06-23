@@ -17,7 +17,7 @@ It also bridges from prior adtech work: an interactive **Mapbox GL + Turf.js cho
 - **Choropleth** of the 50 states + DC, recolored live by a metric toggle. Synthetic mode: available **hosting capacity (MW)**, median **queue wait (months)**, or active **queue volume (GW)**. Real mode: **proposed capacity (GW)**, **proposed projects**, **queue pressure** (proposed ÷ existing), or **canceled / postponed (GW)**. Each metric has its own dark-theme sequential ramp.
 - **Interconnection-queue projects** as points, positioned by lon/lat through the same projection, **sized by capacity** and **colored by status** (active / under study / operational / withdrawn). Project types include solar, storage, wind, gas, and **large load (data centers)** — the new driver of queue growth.
 - **ISO/RTO territory outlines**, built at load time by merging member-state geometries with `topojson.merge`, labeled at their centroids (CAISO, ERCOT, MISO, SPP, PJM, NYISO, ISO-NE).
-- A **detail panel** that starts national and rescopes to any state you click — queue volume, hosting headroom, median wait, withdrawal rate, and capacity-by-type / requests-by-status mixes. (A reach/frequency-style metrics panel, repurposed for queue composition.)
+- A **detail panel** that starts national and rescopes to any state you click — project count, a stat per active metric (rolled up nationally or scoped to the selected state), and capacity-by-type / requests-by-status mixes. (A reach/frequency-style metrics panel, repurposed for queue composition.)
 
 ## The exported module
 

@@ -35,6 +35,8 @@ import {
   num,
   r3,
   r4,
+  KNOWN_STATUS_CODES,
+  parseStatusCode,
   resolver,
   simplifyGeometry,
   statusFor,
@@ -178,6 +180,7 @@ async function main() {
   // Proposed projects -> points + state totals.
   const projects: Array<Record<string, unknown>> = []
   const drop = { state: 0, mw: 0, latlon: 0, fuel: 0 }
+  const unknownStatus: Record<string, number> = {}
   const seen = new Set<string>()
   for (const row of planned) {
     const fips = POSTAL_FIPS[String(row[C.state] ?? "").trim()]
@@ -201,6 +204,9 @@ async function main() {
     seen.add(id)
     const ba = String(cell(row, C.ba) ?? "").trim()
     const year = num(cell(row, C.year))
+    const rawStatus = String(row[C.status] ?? "")
+    const sc = parseStatusCode(rawStatus)
+    if (sc && !KNOWN_STATUS_CODES.has(sc)) unknownStatus[sc] = (unknownStatus[sc] ?? 0) + 1
     projects.push({
       id,
       name: String(cell(row, C.plant) ?? "Proposed generator"),
@@ -208,7 +214,7 @@ async function main() {
       lat: r4(lat),
       capacityMw: Math.max(1, Math.round(mw)),
       fuel,
-      status: statusFor(String(row[C.status] ?? "")),
+      status: statusFor(rawStatus),
       stateId: fips,
       iso: BA_TO_ISO[ba] ?? isoForState(FIPS_NAME[fips] ?? ""),
       queueYear: Number.isFinite(year) ? year : 2026,
@@ -283,6 +289,8 @@ async function main() {
   console.log(`ISO outlines : ${isoFeatures.length} features        (${size("iso-outlines.json")})`)
   console.log(`Projects     : ${projects.length} plotted of ${planned.length} planned  (${size("projects.json")})`)
   console.log(`  dropped    : ${JSON.stringify(drop)}`)
+  if (Object.keys(unknownStatus).length)
+    console.log(`  ⚠ unknown status codes (bucketed active): ${JSON.stringify(unknownStatus)}`)
   console.log(`States       : ${stateMetrics.length} with proposed cap  (${size("state-metrics.json")})`)
   console.log(`Canceled     : ${Object.keys(canceledByState).length} states, ${r3(canceledTotalMw / 1000)} GW over ${canceled.length} rows`)
   console.log(`Top proposed : ${top.map((s) => `${FIPS_NAME[s.id]} ${s.proposedGw}GW`).join(", ")}`)

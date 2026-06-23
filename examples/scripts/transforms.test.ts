@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest"
 import {
+  KNOWN_STATUS_CODES,
   countPts,
   num,
+  parseStatusCode,
   rdp,
   resolver,
   ring,
@@ -45,6 +47,26 @@ describe("statusFor", () => {
   it("falls back to the bare code when there are no parens", () => {
     expect(statusFor("P")).toBe("under-study")
     expect(statusFor("ts")).toBe("operational")
+  })
+})
+
+describe("parseStatusCode / KNOWN_STATUS_CODES", () => {
+  it.each([
+    ["(P) Planned…", "P"],
+    ["(TS) Construction complete", "TS"],
+    ["(V) Under construction", "V"],
+    ["  u  ", "U"],
+  ])("parses %s", (raw, code) => {
+    expect(parseStatusCode(raw)).toBe(code)
+  })
+
+  it("recognizes every code statusFor maps explicitly", () => {
+    for (const c of ["P", "L", "T", "U", "V", "TS"]) expect(KNOWN_STATUS_CODES.has(c)).toBe(true)
+  })
+
+  it("flags a novel EIA code as unknown — build-real-data logs it, still buckets active", () => {
+    expect(KNOWN_STATUS_CODES.has("XX")).toBe(false)
+    expect(statusFor("(XX) Some new status")).toBe("active")
   })
 })
 
