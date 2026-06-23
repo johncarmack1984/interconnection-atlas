@@ -68,6 +68,23 @@ body {
   line-height: 1.5;
 }
 
+/* "View source" link in the masthead — inherits the global focus-visible ring. */
+.repo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: fit-content;
+  margin-top: 0.7rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--ink-dim);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.repo-link:hover {
+  color: var(--ink);
+}
+
 /* Metric toggle --------------------------------------------------------- */
 
 .toggle {
