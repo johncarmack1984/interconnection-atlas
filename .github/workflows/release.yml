@@ -1,9 +1,10 @@
 name: Release to npm
 
-# Publishes the library on a version tag (e.g. `v0.1.0`). The publish step is
-# GATED: it only runs once a repo secret named NPM_TOKEN exists. Until then the
-# job still checks out, type-checks, tests, and builds — so the release path is
-# always exercised — but skips the actual publish with a warning.
+# Publishes the library on a version tag (e.g. `v0.1.0`). It first runs the full
+# CI gate (reusing ci.yml), then publishes. The publish step is GATED: it only
+# runs once a repo secret named NPM_TOKEN exists. Until then the workflow still
+# verifies and builds — so the release path is always exercised — but skips the
+# actual publish with a warning.
 on:
   push:
     tags: ["v*"]
@@ -11,11 +12,19 @@ on:
 
 permissions:
   contents: read
-  id-token: write # required for npm provenance
 
 jobs:
+  # Same checks as every PR: typecheck (library + example), tests, build,
+  # packaging dry-run, demo build.
+  verify:
+    uses: ./.github/workflows/ci.yml
+
   publish:
+    needs: verify
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # required for npm provenance
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
@@ -24,8 +33,6 @@ jobs:
           node-version: 24
           registry-url: "https://registry.npmjs.org"
       - run: bun install --frozen-lockfile
-      - run: bun run typecheck
-      - run: bun run test
       - run: bun run build
       - name: Detect NPM_TOKEN
         id: token
@@ -36,7 +43,7 @@ jobs:
             echo "present=true" >> "$GITHUB_OUTPUT"
           else
             echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::NPM_TOKEN not set — built and tested, skipping publish. Add the secret to enable releases."
+            echo "::warning::NPM_TOKEN not set — verified and built, skipping publish. Add the secret to enable releases."
           fi
       - name: Publish to npm (with provenance)
         if: steps.token.outputs.present == 'true'

@@ -1,0 +1,43 @@
+name: CI
+
+# Full verification on every PR and on pushes to main. Also exposed via
+# workflow_call so release.yml runs the exact same gate before publishing.
+# Mirrors the local checks: typecheck (library + example), tests, the
+# publishable build + a packaging dry-run, and the demo build (Pages parity).
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+# A newer commit on the same branch/PR supersedes an in-flight run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: bun install --frozen-lockfile
+      - name: Type-check library
+        run: bun run typecheck
+      - name: Type-check example
+        run: bunx tsc --noEmit -p examples/tsconfig.json
+      - name: Test
+        run: bun run test
+      - name: Build library
+        run: bun run build
+      - name: Verify package contents (no src, ships dist + LICENSE + README)
+        run: npm pack --dry-run
+      - name: Build demo (Pages parity)
+        run: bun run --filter interconnection-atlas-examples build
