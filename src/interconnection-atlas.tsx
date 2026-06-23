@@ -1,6 +1,7 @@
 import {
   memo,
   useCallback,
+  useEffect,
   useId,
   useMemo,
   useRef,
@@ -67,9 +68,13 @@ const EMPTY_ACCENT = "#6c7889"
 // drops the stroke transition. `.ia-sr-only` hides text visually but keeps it for
 // screen readers (the instructions, points summary, and live-region copy).
 const ATLAS_CSS = `
-.ia-state { cursor: pointer; transition: stroke-width 0.1s, stroke 0.1s; }
+.ia-state { cursor: pointer; transition: stroke-width 0.1s, stroke 0.1s; vector-effect: non-scaling-stroke; }
 .ia-state:focus { outline: none; }
 .ia-state:focus-visible { stroke: #eaf2ff !important; stroke-width: 2.4px !important; }
+.ia-zoom { position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 5px; z-index: 4; }
+.ia-zoom button { width: 30px; height: 30px; padding: 0; display: grid; place-items: center; font: 600 18px/1 ui-sans-serif, system-ui, sans-serif; color: #c8d4e2; background: rgba(12, 22, 34, 0.85); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 7px; cursor: pointer; appearance: none; -webkit-appearance: none; }
+.ia-zoom button:hover { background: rgba(22, 34, 48, 0.95); color: #eaf2ff; }
+.ia-zoom button:focus-visible { outline: 2px solid #eaf2ff; outline-offset: 2px; }
 .ia-sr-only {
   position: absolute !important; width: 1px; height: 1px;
   padding: 0; margin: -1px; overflow: hidden;
@@ -97,7 +102,10 @@ export function InterconnectionAtlas({
   height = 610,
 }: InterconnectionAtlasProps) {
   const wrapRef = useRef<HTMLDivElement>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
   const pathRefs = useRef(new Map<string, SVGPathElement>())
+  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null)
+  const [zoomT, setZoomT] = useState(() => d3.zoomIdentity)
   const [tip, setTip] = useState<Tip | null>(null)
   const [hoverState, setHoverState] = useState<string | null>(null)
   // The state the roving tabindex currently rests on (one Tab stop for the whole
@@ -270,16 +278,67 @@ export function InterconnectionAtlas({
     }
   }
 
+  // Wheel-pinch (trackpad / touchscreen) + drag-pan via d3-zoom; the +/- buttons
+  // drive it programmatically. A plain wheel scroll passes through (filter below)
+  // so the page still scrolls past the map. Transform rides a wrapper <g>, so the
+  // memoized point layer isn't re-rendered while zooming.
+  useEffect(() => {
+    const svg = svgRef.current
+    if (!svg) return
+    const zoom = d3
+      .zoom<SVGSVGElement, unknown>()
+      .scaleExtent([1, 8])
+      .extent([
+        [0, 0],
+        [width, height],
+      ])
+      .translateExtent([
+        [0, 0],
+        [width, height],
+      ])
+      .filter((e) => (e.type === "wheel" ? e.ctrlKey : !e.button))
+      .on("zoom", (e) => setZoomT(e.transform))
+    zoomRef.current = zoom
+    const sel = d3.select(svg)
+    sel.call(zoom).on("dblclick.zoom", null)
+    return () => {
+      sel.on(".zoom", null)
+      zoomRef.current = null
+    }
+  }, [width, height])
+
+  const zoomBy = (factor: number) => {
+    const svg = svgRef.current
+    const zoom = zoomRef.current
+    if (!svg || !zoom) return
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false
+    d3.select(svg)
+      .transition()
+      .duration(reduce ? 0 : 250)
+      .call(zoom.scaleBy, factor)
+  }
+
   return (
     <div ref={wrapRef} className="atlas" style={{ position: "relative" }}>
       <style>{ATLAS_CSS}</style>
+      <div className="ia-zoom">
+        <button type="button" onClick={() => zoomBy(1.5)} aria-label="Zoom in" title="Zoom in">
+          +
+        </button>
+        <button type="button" onClick={() => zoomBy(1 / 1.5)} aria-label="Zoom out" title="Zoom out">
+          −
+        </button>
+      </div>
       <svg
+        ref={svgRef}
         viewBox={`0 0 ${width} ${height}`}
-        style={{ width: "100%", height: "auto", display: "block" }}
+        style={{ width: "100%", height: "auto", display: "block", touchAction: "none" }}
         role="group"
         aria-label={mapName}
         aria-describedby={summaryId}
       >
+        {/* All map layers ride one zoom/pan transform; legends stay fixed below. */}
+        <g transform={zoomT.toString()}>
         {/* Choropleth: each state is a toggle button, keyboard-navigable */}
         <g
           role="group"
@@ -376,9 +435,9 @@ export function InterconnectionAtlas({
           onMove={moveTip}
           onLeave={hideTip}
         />
+        </g>
 
-        {/* Top band over the Great Lakes — the widest gap clear of geometry
-            (bottom-left is the AK/HI insets; the NW corner is Washington). */}
+        {/* Top band over the Great Lakes — clear of the AK/HI insets bottom-left. */}
         <ChoroplethLegend
           interpolator={colorInterpolator}
           domain={domain}
@@ -387,7 +446,7 @@ export function InterconnectionAtlas({
           x={420}
           y={28}
         />
-        <StatusLegend x={width - 168} y={height - 116} />
+        <StatusLegend x={width - 135} y={height - 118} />
       </svg>
 
       <div id={summaryId} className="ia-sr-only">
@@ -509,10 +568,22 @@ function ChoroplethLegend({
   y: number
 }) {
   const W = 184
+  // Panel hugs the wider of the gradient bar and the (variable-length) title.
+  const panelW = Math.max(W, label.length * 6.5) + 16
   const stops = 28
   const ticks = [domain[0], (domain[0] + domain[1]) / 2, domain[1]]
   return (
     <g transform={`translate(${x},${y})`} pointerEvents="none" aria-hidden="true">
+      {/* Backing panel so the legend reads cleanly over the (zoomable) map. */}
+      <rect
+        x={-9}
+        y={-23}
+        width={panelW}
+        height={55}
+        rx={8}
+        fill="rgba(12, 22, 34, 0.85)"
+        stroke="rgba(255, 255, 255, 0.14)"
+      />
       <text fontSize={11} fontWeight={600} fill="#c8d4e2" y={-8}>
         {label}
       </text>
@@ -547,6 +618,16 @@ function ChoroplethLegend({
 function StatusLegend({ x, y }: { x: number; y: number }) {
   return (
     <g transform={`translate(${x},${y})`} pointerEvents="none" aria-hidden="true">
+      {/* Backing panel so the legend reads cleanly over the map. */}
+      <rect
+        x={-9}
+        y={-20}
+        width={136}
+        height={98}
+        rx={8}
+        fill="rgba(12,22,34,0.85)"
+        stroke="rgba(255,255,255,0.14)"
+      />
       <text fontSize={11} fontWeight={600} fill="#c8d4e2" y={-6}>
         Queue project status
       </text>
