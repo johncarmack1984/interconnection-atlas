@@ -77,7 +77,9 @@ const firstStatePath = (root: HTMLElement) =>
 describe("<InterconnectionAtlas>", () => {
   it("labels the svg with the active metric", () => {
     render(<InterconnectionAtlas {...baseProps} />)
-    const svg = screen.getByRole("img")
+    // The map is a labeled group (not role="img") so AT can reach the
+    // per-state buttons and the points summary inside it.
+    const svg = screen.getByRole("group", { name: /Hosting capacity \(MW\)/ })
     expect(svg.getAttribute("aria-label")).toContain("Hosting capacity (MW)")
   })
 
@@ -119,5 +121,67 @@ describe("<InterconnectionAtlas>", () => {
     )
     fireEvent.click(firstStatePath(container))
     expect(onSelectState).toHaveBeenCalledWith("06")
+  })
+
+  it("exposes each state as a button named with its value and pressed state", () => {
+    render(<InterconnectionAtlas {...baseProps} selectedStateId="06" />)
+    const ca = screen.getByRole("button", { name: /California/ })
+    expect(ca.getAttribute("aria-label")).toContain("100 MW")
+    expect(ca).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getByRole("button", { name: /Texas/ })).toHaveAttribute(
+      "aria-pressed",
+      "false"
+    )
+  })
+
+  it("keeps a single tab stop across the states (roving tabindex)", () => {
+    render(<InterconnectionAtlas {...baseProps} />)
+    const tabbable = screen
+      .getAllByRole("button")
+      .filter((b) => b.getAttribute("tabindex") === "0")
+    expect(tabbable).toHaveLength(1)
+  })
+
+  it("selects a focused state on Enter and toggles it off when re-pressed", () => {
+    const onSelectState = vi.fn()
+    const { rerender } = render(
+      <InterconnectionAtlas {...baseProps} onSelectState={onSelectState} />
+    )
+    fireEvent.keyDown(screen.getByRole("button", { name: /California/ }), { key: "Enter" })
+    expect(onSelectState).toHaveBeenCalledWith("06")
+
+    rerender(
+      <InterconnectionAtlas {...baseProps} onSelectState={onSelectState} selectedStateId="06" />
+    )
+    fireEvent.keyDown(screen.getByRole("button", { name: /California/ }), { key: " " })
+    expect(onSelectState).toHaveBeenLastCalledWith(null)
+  })
+
+  it("clears an active selection on Escape", () => {
+    const onSelectState = vi.fn()
+    render(
+      <InterconnectionAtlas {...baseProps} onSelectState={onSelectState} selectedStateId="06" />
+    )
+    fireEvent.keyDown(screen.getByRole("button", { name: /California/ }), { key: "Escape" })
+    expect(onSelectState).toHaveBeenCalledWith(null)
+  })
+
+  it("wires arrow keys to move the single roving tab stop to a neighbor", () => {
+    render(<InterconnectionAtlas {...baseProps} />)
+    const ca = screen.getByRole("button", { name: /California/ })
+    expect(ca).toHaveAttribute("tabindex", "0") // first feature owns the tab stop
+    // geoAlbersUsa.fitSize collapses this 2-square fixture, projecting Texas just
+    // *above* California in screen space; ArrowUp is the direction that connects
+    // them here. (Direction semantics on controlled coordinates: see nav.test.ts.)
+    fireEvent.keyDown(ca, { key: "ArrowUp" })
+    expect(screen.getByRole("button", { name: /Texas/ })).toHaveAttribute("tabindex", "0")
+    expect(ca).toHaveAttribute("tabindex", "-1")
+  })
+
+  it("summarizes the queue projects for AT via the map's aria-describedby", () => {
+    render(<InterconnectionAtlas {...baseProps} />)
+    const map = screen.getByRole("group", { name: /Hosting capacity/ })
+    const summary = document.getElementById(map.getAttribute("aria-describedby") ?? "")
+    expect(summary).toHaveTextContent(/2 interconnection-queue projects/)
   })
 })

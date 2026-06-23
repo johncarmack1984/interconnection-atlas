@@ -17,10 +17,15 @@ interface Segment {
 function MixBar({ title, segments, unit }: { title: string; segments: Segment[]; unit: string }) {
   const total = segments.reduce((s, x) => s + x.value, 0) || 1
   const shown = segments.filter((s) => s.value > 0)
+  // Describe the bar's breakdown for screen readers (the colored segments alone
+  // convey nothing to AT); the visible legend below repeats it for sighted users.
+  const desc = shown.length
+    ? shown.map((s) => `${s.label} ${Math.round((s.value / total) * 100)}%`).join(", ")
+    : "no data"
   return (
     <div className="mix">
       <div className="mix-title">{title}</div>
-      <div className="mix-bar" role="img" aria-label={title}>
+      <div className="mix-bar" role="img" aria-label={`${title}: ${desc}`}>
         {shown.map((s) => (
           <span
             key={s.label}
