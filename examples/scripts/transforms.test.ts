@@ -8,6 +8,7 @@ import {
   ringSpan,
   simplifyGeometry,
   statusFor,
+  sumByState,
   techToFuel,
 } from "./transforms"
 
@@ -141,5 +142,30 @@ describe("resolver", () => {
   })
   it("returns null when nothing matches", () => {
     expect(resolver(sample)("Latitude")).toBeNull()
+  })
+})
+
+describe("sumByState", () => {
+  const k = (s: string, mw: unknown) => ({ "Plant State": s, "Nameplate Capacity (MW)": mw })
+  it("sums count + mw per FIPS, keyed off the postal state", () => {
+    const out = sumByState(
+      [k("TX", 100), k("TX", 50), k("CA", 25)],
+      "Plant State",
+      "Nameplate Capacity (MW)"
+    )
+    expect(out["48"]).toEqual({ count: 2, mw: 150 })
+    expect(out["06"]).toEqual({ count: 1, mw: 25 })
+  })
+  it("skips rows with an unknown state or a non-positive / non-numeric MW", () => {
+    const out = sumByState(
+      [k("TX", 0), k("TX", -5), k("TX", "n/a"), k("ZZ", 100), k("TX", "1,200")],
+      "Plant State",
+      "Nameplate Capacity (MW)"
+    )
+    // Only the "1,200" row survives (num() strips the comma); the rest drop out.
+    expect(out).toEqual({ "48": { count: 1, mw: 1200 } })
+  })
+  it("returns an empty object for no rows", () => {
+    expect(sumByState([], "Plant State", "Nameplate Capacity (MW)")).toEqual({})
   })
 })

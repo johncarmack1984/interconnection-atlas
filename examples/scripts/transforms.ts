@@ -76,6 +76,28 @@ export const cell = (row: Record<string, unknown>, key: string | null): unknown 
 export const r3 = (n: number) => Math.round(n * 1000) / 1000
 export const r4 = (n: number) => Math.round(n * 10000) / 10000
 
+// Sum a sheet's rows into per-state { count, mw }, keyed by 2-digit FIPS. Rows
+// whose Plant State isn't one of the 50 + DC, or whose nameplate MW isn't a
+// positive finite number, are skipped — mirroring how the proposed/operating
+// totals filter. Pure, so the canceled/postponed aggregation stays unit-testable.
+export function sumByState(
+  rows: Record<string, unknown>[],
+  stateCol: string,
+  mwCol: string
+): Record<string, { count: number; mw: number }> {
+  const acc: Record<string, { count: number; mw: number }> = {}
+  for (const row of rows) {
+    const fips = POSTAL_FIPS[String(row[stateCol] ?? "").trim()]
+    if (!fips) continue
+    const mw = num(row[mwCol])
+    if (!Number.isFinite(mw) || mw <= 0) continue
+    const a = acc[fips] ?? (acc[fips] = { count: 0, mw: 0 })
+    a.count++
+    a.mw += mw
+  }
+  return acc
+}
+
 // Douglas–Peucker tolerance for the ISO outlines, in degrees (~2 km). They are
 // drawn as standalone strokes (no shared borders), so each ring simplifies
 // independently and aggressively — visually lossless on a national-scale map.

@@ -68,6 +68,7 @@ export default function App() {
             projects={data.projects}
             selectedStateId={selected}
             onSelectState={setSelected}
+            projectYearLabel={source === "real" ? "Planned online" : "In queue since"}
           />
           {source === "real" ? (
             <p className="caption">
@@ -80,9 +81,12 @@ export default function App() {
               <a href="https://hifld-geoplatform.hub.arcgis.com" target="_blank" rel="noreferrer">
                 HIFLD
               </a>
-              . Proposed generators are a <strong>subset</strong> of the full queue — large loads / data
-              centers, withdrawn requests, and true wait-time / hosting-capacity aren&rsquo;t in any public
-              project-level source.
+              . The <strong>Canceled / postponed</strong> metric sums EIA&rsquo;s canceled-or-postponed
+              sheet ({REAL_META.canceled.totalGw.toLocaleString()} GW over{" "}
+              {REAL_META.canceled.rows.toLocaleString()} units) as an attrition proxy. Proposed generators
+              are a <strong>subset</strong> of the full queue — the per-project year is{" "}
+              <strong>planned online</strong>, not queue entry, and large loads / data centers, withdrawn
+              requests, and true wait-time / hosting-capacity aren&rsquo;t in any public project-level source.
             </p>
           ) : (
             <p className="caption">

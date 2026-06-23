@@ -31,11 +31,14 @@ interface RealStateRow {
   proposedCount: number
   existingGw: number
   pressurePct: number
+  canceledGw: number
+  canceledCount: number
 }
 
 export const REAL_META = metaJson as unknown as {
   isoOutlines: { source: string; features: number }
   projects: { source: string; plotted: number; plannedRows: number; dropped: Record<string, number> }
+  canceled: { source: string; rows: number; totalGw: number; statesWithData: number }
   states: { withProposed: number }
 }
 
@@ -74,6 +77,16 @@ const REAL_METRICS: Metric[] = [
       return e > 0 ? Math.round((p / e) * 100) : 0
     },
   },
+  {
+    key: "canceledGw",
+    short: "Canceled/postponed",
+    hint: "Canceled or postponed generation — EIA-860M Canceled-or-Postponed sheet (GW); an attrition proxy, not interconnection-queue withdrawals",
+    label: "Canceled / postponed (GW)",
+    interpolator: RAMPS.red,
+    format: round0,
+    unit: "GW",
+    aggregate: sumOf("canceledGw"),
+  },
 ]
 
 export function loadRealDataset(): AtlasDataset {
@@ -98,6 +111,7 @@ export function loadRealDataset(): AtlasDataset {
           proposedCount: r?.proposedCount ?? 0,
           pressure: r?.pressurePct ?? 0,
           existingGw: r?.existingGw ?? 0,
+          canceledGw: r?.canceledGw ?? 0,
         },
       }
     })

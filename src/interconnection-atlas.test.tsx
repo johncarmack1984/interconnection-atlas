@@ -114,6 +114,23 @@ describe("<InterconnectionAtlas>", () => {
     expect(within(tip).getByText("100 MW")).toBeInTheDocument()
   })
 
+  it("labels the project-year tooltip row and lets projectYearLabel override it", () => {
+    const { container } = render(<InterconnectionAtlas {...baseProps} />)
+    // The first <circle> is a plotted project (the status-legend swatches render after).
+    fireEvent.pointerOver(container.querySelector("circle") as SVGCircleElement)
+    const tip = container.querySelector(".atlas-tooltip") as HTMLElement
+    expect(within(tip).getByText("In queue since")).toBeInTheDocument()
+    cleanup()
+
+    const { container: c2 } = render(
+      <InterconnectionAtlas {...baseProps} projectYearLabel="Planned online" />
+    )
+    fireEvent.pointerOver(c2.querySelector("circle") as SVGCircleElement)
+    const tip2 = c2.querySelector(".atlas-tooltip") as HTMLElement
+    expect(within(tip2).getByText("Planned online")).toBeInTheDocument()
+    expect(within(tip2).queryByText("In queue since")).not.toBeInTheDocument()
+  })
+
   it("calls onSelectState with the clicked region id", () => {
     const onSelectState = vi.fn()
     const { container } = render(

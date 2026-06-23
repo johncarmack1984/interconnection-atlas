@@ -38,6 +38,10 @@ export interface InterconnectionAtlasProps {
   /** Accessible name for the map as a whole. Defaults to a phrase built from
    *  `valueLabel`. */
   mapLabel?: string
+  /** Label for the per-project year row in the point tooltip. Defaults to
+   *  "In queue since"; real-data mode passes "Planned online" because the value
+   *  is the EIA planned-operation year, not a queue-entry date. */
+  projectYearLabel?: string
   width?: number
   height?: number
 }
@@ -83,6 +87,7 @@ export function InterconnectionAtlas({
   selectedStateId = null,
   onSelectState,
   mapLabel,
+  projectYearLabel = "In queue since",
   width = 975,
   height = 610,
 }: InterconnectionAtlasProps) {
@@ -373,7 +378,7 @@ export function InterconnectionAtlas({
                     ["Type", labelFuel(p.fuel)],
                     ["Status", STATUS_META[p.status].label],
                     ["ISO / RTO", p.iso],
-                    ["In queue since", String(p.queueYear)],
+                    [projectYearLabel, String(p.queueYear)],
                   ],
                 })
               }

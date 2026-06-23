@@ -54,6 +54,7 @@ export const RAMPS = {
   green: d3.interpolateRgbBasis(["#152330", "#1f6f4f", "#57d98e"]),
   orange: d3.interpolateRgbBasis(["#152330", "#7a3b2e", "#e8835f"]),
   purple: d3.interpolateRgbBasis(["#152330", "#3a3a6b", "#9b8cf0"]),
+  red: d3.interpolateRgbBasis(["#152330", "#7a2e34", "#e8606b"]),
 }
 
 export const compact = (n: number) =>

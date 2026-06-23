@@ -38,6 +38,7 @@ import {
   resolver,
   simplifyGeometry,
   statusFor,
+  sumByState,
   techToFuel,
 } from "./transforms"
 
@@ -152,6 +153,7 @@ async function main() {
 
   const planned = readSheet(wb, /planned/i)
   const operating = readSheet(wb, /operating/i)
+  const canceled = readSheet(wb, /cancel|postpon/i)
   const k = resolver(planned[0])
   const C = {
     state: k("Plant State")!,
@@ -224,17 +226,32 @@ async function main() {
     if (Number.isFinite(mw) && mw > 0) existingMw[fips] = (existingMw[fips] ?? 0) + mw
   }
 
+  // Canceled / postponed generators (EIA-860M "Canceled or Postponed" sheet) —
+  // an automatable attrition proxy, aggregated per state only. NOT plotted as
+  // points: EIA-canceled is a developer/utility cancellation, not the same event
+  // as an interconnection-queue withdrawal, so conflating them would mislead.
+  const ck = resolver(canceled[0])
+  const canceledByState = sumByState(
+    canceled,
+    ck("Plant State")!,
+    ck("Nameplate Capacity (MW)", "Nameplate Capacity")!
+  )
+  const canceledTotalMw = Object.values(canceledByState).reduce((s, x) => s + x.mw, 0)
+
   // Per-state metric rows (only the 50 states + DC that have proposed capacity).
   const stateMetrics = Object.keys(proposedMw)
     .sort()
     .map((fips) => {
       const ex = existingMw[fips] ?? 0
+      const can = canceledByState[fips]
       return {
         id: fips,
         proposedGw: r3(proposedMw[fips] / 1000),
         proposedCount: proposedCount[fips],
         existingGw: r3(ex / 1000),
         pressurePct: ex > 0 ? Math.round((proposedMw[fips] / ex) * 100) : 0,
+        canceledGw: r3((can?.mw ?? 0) / 1000),
+        canceledCount: can?.count ?? 0,
       }
     })
   writeFileSync(resolve(outDir, "state-metrics.json"), JSON.stringify(stateMetrics))
@@ -249,6 +266,12 @@ async function main() {
       plannedRows: planned.length,
       dropped: drop,
     },
+    canceled: {
+      source: `EIA-860M ${EIA_MONTH} — Canceled or Postponed generators (public domain)`,
+      rows: canceled.length,
+      totalGw: r3(canceledTotalMw / 1000),
+      statesWithData: Object.keys(canceledByState).length,
+    },
     states: { withProposed: stateMetrics.length },
   }
   writeFileSync(resolve(outDir, "meta.json"), JSON.stringify(meta, null, 2))
@@ -261,6 +284,7 @@ async function main() {
   console.log(`Projects     : ${projects.length} plotted of ${planned.length} planned  (${size("projects.json")})`)
   console.log(`  dropped    : ${JSON.stringify(drop)}`)
   console.log(`States       : ${stateMetrics.length} with proposed cap  (${size("state-metrics.json")})`)
+  console.log(`Canceled     : ${Object.keys(canceledByState).length} states, ${r3(canceledTotalMw / 1000)} GW over ${canceled.length} rows`)
   console.log(`Top proposed : ${top.map((s) => `${FIPS_NAME[s.id]} ${s.proposedGw}GW`).join(", ")}`)
 }
 

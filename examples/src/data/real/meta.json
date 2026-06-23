@@ -15,6 +15,12 @@
       "fuel": 190
     }
   },
+  "canceled": {
+    "source": "EIA-860M April 2026 — Canceled or Postponed generators (public domain)",
+    "rows": 1715,
+    "totalGw": 181.264,
+    "statesWithData": 51
+  },
   "states": {
     "withProposed": 51
   }
