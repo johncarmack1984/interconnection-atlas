@@ -1,4 +1,7 @@
 import {
+  memo,
+  useCallback,
+  useEffect,
   useId,
   useMemo,
   useRef,
@@ -53,6 +56,9 @@ interface Tip {
   rows: Array<[string, string]>
   accent: string
 }
+
+/** A queue project projected to screen coordinates. */
+type PlacedPoint = { p: QueueProject; x: number; y: number }
 
 const EMPTY_FILL = "#16222f"
 const EMPTY_ACCENT = "#6c7889"
@@ -152,7 +158,7 @@ export function InterconnectionAtlas({
         const xy = projection([p.lon, p.lat])
         return xy ? { p, x: xy[0], y: xy[1] } : null
       })
-      .filter((d): d is { p: QueueProject; x: number; y: number } => d !== null)
+      .filter((d): d is PlacedPoint => d !== null)
     placed.sort((a, b) => {
       const s = STATUS_ORDER.indexOf(b.p.status) - STATUS_ORDER.indexOf(a.p.status)
       return s !== 0 ? s : b.p.capacityMw - a.p.capacityMw
@@ -173,17 +179,26 @@ export function InterconnectionAtlas({
 
   const mapName = mapLabel ?? `United States interconnection atlas, colored by ${valueLabel}`
 
-  const showTip = (e: PointerEvent, t: Omit<Tip, "x" | "y">) => {
+  const showTip = useCallback((e: PointerEvent, t: Omit<Tip, "x" | "y">) => {
     const rect = wrapRef.current?.getBoundingClientRect()
     setTip({ ...t, x: e.clientX - (rect?.left ?? 0), y: e.clientY - (rect?.top ?? 0) })
-  }
+  }, [])
 
-  const moveTip = (clientX: number, clientY: number) =>
-    setTip((t) => {
-      if (!t) return t
-      const rect = wrapRef.current?.getBoundingClientRect()
-      return { ...t, x: clientX - (rect?.left ?? 0), y: clientY - (rect?.top ?? 0) }
-    })
+  // Coalesce pointer-move tooltip updates to one per animation frame: dragging the
+  // cursor across the point layer would otherwise fire a setState per pointermove.
+  const moveRaf = useRef(0)
+  const moveTip = useCallback((clientX: number, clientY: number) => {
+    cancelAnimationFrame(moveRaf.current)
+    moveRaf.current = requestAnimationFrame(() =>
+      setTip((t) => {
+        if (!t) return t
+        const rect = wrapRef.current?.getBoundingClientRect()
+        return { ...t, x: clientX - (rect?.left ?? 0), y: clientY - (rect?.top ?? 0) }
+      })
+    )
+  }, [])
+  const hideTip = useCallback(() => setTip(null), [])
+  useEffect(() => () => cancelAnimationFrame(moveRaf.current), [])
 
   const stateRows = (v: number | undefined): Array<[string, string]> => [
     [valueLabel, v == null ? "n/a" : formatValue(v)],
@@ -356,37 +371,16 @@ export function InterconnectionAtlas({
         </g>
 
         {/* Interconnection-queue projects (summarized for AT via the map's
-            aria-describedby; individually hidden to avoid ~240 tab stops) */}
-        <g aria-hidden="true">
-          {points.map(({ p, x, y }) => (
-            <circle
-              key={p.id}
-              cx={x}
-              cy={y}
-              r={radius(p.capacityMw)}
-              fill={STATUS_META[p.status].color}
-              fillOpacity={p.status === "withdrawn" ? 0.32 : 0.78}
-              stroke="#0c1622"
-              strokeWidth={0.5}
-              style={{ cursor: "pointer" }}
-              onPointerEnter={(e) =>
-                showTip(e, {
-                  title: p.name,
-                  accent: STATUS_META[p.status].color,
-                  rows: [
-                    ["Capacity", `${formatMw(p.capacityMw)} MW`],
-                    ["Type", labelFuel(p.fuel)],
-                    ["Status", STATUS_META[p.status].label],
-                    ["ISO / RTO", p.iso],
-                    [projectYearLabel, String(p.queueYear)],
-                  ],
-                })
-              }
-              onPointerMove={(e) => moveTip(e.clientX, e.clientY)}
-              onPointerLeave={() => setTip(null)}
-            />
-          ))}
-        </g>
+            aria-describedby; individually hidden to avoid a tab stop per point).
+            Memoized so hover / tooltip updates don't re-render the whole layer. */}
+        <QueuePoints
+          points={points}
+          radius={radius}
+          projectYearLabel={projectYearLabel}
+          onEnter={showTip}
+          onMove={moveTip}
+          onLeave={hideTip}
+        />
 
         <ChoroplethLegend
           interpolator={colorInterpolator}
@@ -410,6 +404,59 @@ export function InterconnectionAtlas({
     </div>
   )
 }
+
+// The queue-point layer, split out and memoized so the parent's hover/tooltip
+// re-renders don't reconcile the full set of circles (real-data mode plots ~2,000).
+// Every prop is referentially stable across hover — data-derived memos plus
+// useCallback handlers — so React.memo skips it until the data itself changes.
+const QueuePoints = memo(function QueuePoints({
+  points,
+  radius,
+  projectYearLabel,
+  onEnter,
+  onMove,
+  onLeave,
+}: {
+  points: PlacedPoint[]
+  radius: (mw: number) => number
+  projectYearLabel: string
+  onEnter: (e: PointerEvent, t: Omit<Tip, "x" | "y">) => void
+  onMove: (clientX: number, clientY: number) => void
+  onLeave: () => void
+}) {
+  return (
+    <g aria-hidden="true">
+      {points.map(({ p, x, y }) => (
+        <circle
+          key={p.id}
+          cx={x}
+          cy={y}
+          r={radius(p.capacityMw)}
+          fill={STATUS_META[p.status].color}
+          fillOpacity={p.status === "withdrawn" ? 0.32 : 0.78}
+          stroke="#0c1622"
+          strokeWidth={0.5}
+          style={{ cursor: "pointer" }}
+          onPointerEnter={(e) =>
+            onEnter(e, {
+              title: p.name,
+              accent: STATUS_META[p.status].color,
+              rows: [
+                ["Capacity", `${formatMw(p.capacityMw)} MW`],
+                ["Type", labelFuel(p.fuel)],
+                ["Status", STATUS_META[p.status].label],
+                ["ISO / RTO", p.iso],
+                [projectYearLabel, String(p.queueYear)],
+              ],
+            })
+          }
+          onPointerMove={(e) => onMove(e.clientX, e.clientY)}
+          onPointerLeave={onLeave}
+        />
+      ))}
+    </g>
+  )
+})
 
 // ---------------------------------------------------------------------------
 
