@@ -1,0 +1,48 @@
+name: Dependabot bun lockfile
+
+# Dependabot bumps package.json but doesn't maintain bun.lock, so its npm PRs
+# fail `bun install --frozen-lockfile` (this is what sank the first batch). This
+# regenerates bun.lock and commits it back to the PR branch, so CI re-runs
+# against a synced lockfile and the PR can merge.
+#
+# Security:
+#   - pull_request_target gives GITHUB_TOKEN write access to push to the PR
+#     branch (a plain pull_request token is read-only for Dependabot).
+#   - Gated to dependabot[bot]: any other PR runs under its author's actor, so it
+#     cannot trigger this.
+#   - The paths filter limits it to dependency PRs, and the bun.lock-only commit
+#     doesn't match that filter, so it never re-triggers itself (no loop).
+#   - bun skips untrusted packages' lifecycle scripts on install, so a bumped dep
+#     can't run code against the token.
+on:
+  pull_request_target:
+    paths:
+      - "package.json"
+      - "**/package.json"
+
+permissions:
+  contents: write
+
+jobs:
+  lockfile:
+    if: ${{ github.actor == 'dependabot[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: oven-sh/setup-bun@v2
+      - name: Regenerate bun.lock from the bumped package.json
+        run: bun install
+      - name: Commit the refreshed lockfile if it changed
+        run: |
+          if git diff --quiet -- bun.lock; then
+            echo "bun.lock already in sync — nothing to do."
+          else
+            git config user.name "dependabot[bot]"
+            git config user.email "49699333+dependabot[bot]@users.noreply.github.com"
+            git add bun.lock
+            git commit -m "Regenerate bun.lock"
+            git push
+          fi
