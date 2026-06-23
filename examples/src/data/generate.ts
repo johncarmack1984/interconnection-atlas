@@ -22,8 +22,8 @@ import {
 import { ISO_META, OUTLINED_ISOS, isoForState } from "./iso-regions"
 
 // Deterministic PRNG so the atlas is identical on every load (stable demo +
-// screenshots). Math.random is intentionally avoided.
-function mulberry32(seed: number) {
+// screenshots). Math.random is intentionally avoided. Exported for unit tests.
+export function mulberry32(seed: number) {
   return () => {
     seed |= 0
     seed = (seed + 0x6d2b79f5) | 0
@@ -48,8 +48,9 @@ const STATUS_WEIGHTS: Array<[QueueStatus, number]> = [
   ["operational", 0.1],
 ]
 
-// Capacity range (MW) by type; data-center load and gas skew large.
-const CAPACITY_MW: Record<Fuel, [number, number]> = {
+// Capacity range (MW) by type; data-center load and gas skew large. Exported so
+// tests can assert generated points fall within their fuel's range.
+export const CAPACITY_MW: Record<Fuel, [number, number]> = {
   solar: [60, 760],
   wind: [90, 880],
   storage: [20, 520],
