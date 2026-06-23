@@ -29,6 +29,9 @@ jobs:
         with:
           node-version: 24
       - run: bun install --frozen-lockfile
+      - name: Audit dependencies (informational — dev-only advisories don't block)
+        run: bun audit
+        continue-on-error: true
       - name: Type-check library
         run: bun run typecheck
       - name: Type-check example

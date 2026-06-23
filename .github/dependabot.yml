@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # Keep the pinned GitHub Actions current (and flag tag → newer-version bumps).
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+
+  # Surface dependency advisories (e.g. the dev-only xlsx CVE) as update PRs.
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
