@@ -10,6 +10,10 @@
     "noUnusedParameters": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    // tsup's DTS bundler (rollup-plugin-dts) sets `baseUrl` internally, which TS 6
+    // flags as deprecated (TS5101); our own configs are baseUrl-free. Tolerate it
+    // for the 6.0 grace period — drop once the bundler stops emitting baseUrl.
+    "ignoreDeprecations": "6.0",
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true
