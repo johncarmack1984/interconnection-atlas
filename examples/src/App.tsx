@@ -50,8 +50,8 @@ export default function App() {
           </p>
         </div>
         <div className="controls">
-          <MetricToggle options={SOURCE_OPTIONS} value={source} onChange={changeSource} />
-          <MetricToggle options={data.metrics} value={metric.key} onChange={setMetricKey} />
+          <MetricToggle options={SOURCE_OPTIONS} value={source} onChange={changeSource} label="Data source" />
+          <MetricToggle options={data.metrics} value={metric.key} onChange={setMetricKey} label="Choropleth metric" />
         </div>
       </header>
 

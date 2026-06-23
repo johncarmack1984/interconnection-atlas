@@ -321,3 +321,25 @@ code {
   padding: 0.1em 0.4em;
   border-radius: 4px;
 }
+
+/* Accessibility --------------------------------------------------------- */
+
+/* Visible keyboard focus for every interactive control (the map paths bring
+   their own focus ring from the library's scoped style). */
+:where(a, button, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Honor a reduced-motion preference: drop transitions/animations app-wide. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

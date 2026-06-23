@@ -42,6 +42,17 @@ import { InterconnectionAtlas } from "interconnection-atlas"
 
 It depends only on `d3` (and `react`/`react-dom` as peers). It takes already-projected-agnostic GeoJSON in and owns the projection (`geoAlbersUsa`, fit to size), the color scale, point placement, legends, and tooltips. The example supplies the data and the metric/panel orchestration, so the component stays a reusable map rather than a one-off screen.
 
+## Install
+
+```bash
+npm install interconnection-atlas
+# react / react-dom >= 18 are peer dependencies; d3 comes along as a dependency
+```
+
+The package ships compiled ESM + type declarations (`dist/`), built with `tsup`. It is ESM-only by design — its one runtime dependency, d3 v7, is ESM-only, so a CommonJS build wouldn't run anyway. Import the component and feed it GeoJSON regions, merged ISO outlines, and a `values` map (the snippet above); `examples/` is a complete working consumer.
+
+**Publishing (maintainers):** releases are tag-driven. Push a `v*` tag and `.github/workflows/release.yml` type-checks, tests, builds, and — once a `NPM_TOKEN` repo secret exists — publishes to npm with provenance. Rationale in [`docs/adr-0001-publishable-build.md`](docs/adr-0001-publishable-build.md).
+
 ## Data
 
 The map toggles between **real** and **synthetic** data (top-right). Both are bundled as a fixed snapshot — no backend, no runtime fetch — so the demo stays fully static, deterministic, and offline-capable.

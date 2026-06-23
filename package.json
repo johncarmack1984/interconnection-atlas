@@ -4,22 +4,49 @@
   "description": "Interactive D3 map of US grid interconnection: a hosting-capacity choropleth with the interconnection queue and ISO/RTO territories overlaid.",
   "type": "module",
   "license": "MIT",
+  "author": "John Carmack",
+  "homepage": "https://johncarmack1984.github.io/interconnection-atlas/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johncarmack1984/interconnection-atlas.git"
+  },
+  "bugs": {
+    "url": "https://github.com/johncarmack1984/interconnection-atlas/issues"
+  },
+  "keywords": [
+    "d3",
+    "d3-geo",
+    "choropleth",
+    "map",
+    "react",
+    "interconnection",
+    "grid",
+    "iso-rto",
+    "geojson",
+    "topojson",
+    "data-visualization"
+  ],
   "sideEffects": false,
-  "main": "./src/index.ts",
-  "module": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "import": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     }
   },
   "files": [
-    "src"
+    "dist"
   ],
   "scripts": {
     "dev": "bun --filter interconnection-atlas-examples dev",
-    "typecheck": "tsc --noEmit"
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "bun run build"
   },
   "peerDependencies": {
     "react": ">=18",
@@ -29,13 +56,20 @@
     "d3": "^7.9.0"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/d3": "^7.4.3",
     "@types/geojson": "^7946.0.14",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@vitest/coverage-v8": "^4.1.9",
+    "jsdom": "^29.1.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "typescript": "^5.7.2"
+    "tsup": "^8.5.1",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.9",
+    "vitest-axe": "^0.1.0"
   },
   "workspaces": [
     "examples"

@@ -1,4 +1,12 @@
-import { useMemo, useRef, useState, type PointerEvent } from "react"
+import {
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type FocusEvent,
+  type KeyboardEvent,
+  type PointerEvent,
+} from "react"
 import * as d3 from "d3"
 import type {
   IsoOutlineCollection,
@@ -6,6 +14,7 @@ import type {
   RegionCollection,
 } from "./types"
 import { STATUS_META, STATUS_ORDER } from "./types"
+import { nearestInDirection } from "./nav"
 
 export interface InterconnectionAtlasProps {
   /** State polygons to draw as the choropleth. */
@@ -26,6 +35,9 @@ export interface InterconnectionAtlasProps {
   projects: QueueProject[]
   selectedStateId?: string | null
   onSelectState?: (id: string | null) => void
+  /** Accessible name for the map as a whole. Defaults to a phrase built from
+   *  `valueLabel`. */
+  mapLabel?: string
   width?: number
   height?: number
 }
@@ -39,6 +51,25 @@ interface Tip {
 }
 
 const EMPTY_FILL = "#16222f"
+const EMPTY_ACCENT = "#6c7889"
+
+// Scoped styles the component owns so it stays self-contained (no external CSS
+// needed): the keyboard focus ring on states, and a reduced-motion guard that
+// drops the stroke transition. `.ia-sr-only` hides text visually but keeps it for
+// screen readers (the instructions, points summary, and live-region copy).
+const ATLAS_CSS = `
+.ia-state { cursor: pointer; transition: stroke-width 0.1s, stroke 0.1s; }
+.ia-state:focus { outline: none; }
+.ia-state:focus-visible { stroke: #eaf2ff !important; stroke-width: 2.4px !important; }
+.ia-sr-only {
+  position: absolute !important; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ia-state { transition: none !important; }
+}
+`
 
 export function InterconnectionAtlas({
   regions,
@@ -51,12 +82,21 @@ export function InterconnectionAtlas({
   projects,
   selectedStateId = null,
   onSelectState,
+  mapLabel,
   width = 975,
   height = 610,
 }: InterconnectionAtlasProps) {
   const wrapRef = useRef<HTMLDivElement>(null)
+  const pathRefs = useRef(new Map<string, SVGPathElement>())
   const [tip, setTip] = useState<Tip | null>(null)
   const [hoverState, setHoverState] = useState<string | null>(null)
+  // The state the roving tabindex currently rests on (one Tab stop for the whole
+  // choropleth); arrow keys move it. Null until first focus → falls back below.
+  const [focusId, setFocusId] = useState<string | null>(null)
+  const [announce, setAnnounce] = useState("")
+
+  const baseId = useId()
+  const summaryId = `${baseId}-summary`
 
   // geoAlbersUsa handles the AK/HI insets; fit it to the drawing area once.
   const projection = useMemo(
@@ -75,9 +115,32 @@ export function InterconnectionAtlas({
     return d3.scaleSqrt().domain([0, max]).range([1.4, 20])
   }, [projects])
 
-  // Project lon/lat → screen coords up front; drop anything geoAlbersUsa can't
-  // place (outside the US clip). Draw withdrawn first / largest first so the
-  // live, smaller projects stay legible on top.
+  const nameById = useMemo(
+    () => new Map(regions.features.map((f) => [String(f.id), f.properties.name])),
+    [regions]
+  )
+
+  // Screen-projected centroids, used to find the spatially-nearest state for
+  // arrow-key navigation (and the AK/HI-aware Tab landing spot).
+  const centroidById = useMemo(() => {
+    const m = new Map<string, [number, number]>()
+    for (const f of regions.features) {
+      const c = path.centroid(f)
+      if (Number.isFinite(c[0]) && Number.isFinite(c[1])) m.set(String(f.id), [c[0], c[1]])
+    }
+    return m
+  }, [regions, path])
+
+  // The single Tab stop: the focused state, else the selection, else the first
+  // drawable state. Keeps exactly one state at tabIndex 0.
+  const firstId = centroidById.keys().next().value ?? null
+  const rovingOwner =
+    (focusId && centroidById.has(focusId) && focusId) ||
+    (selectedStateId && centroidById.has(selectedStateId) && selectedStateId) ||
+    firstId
+
+  // Points → screen coords up front; drop anything geoAlbersUsa can't place.
+  // Draw withdrawn first / largest first so live, smaller projects stay legible.
   const points = useMemo(() => {
     const placed = projects
       .map((p) => {
@@ -92,72 +155,167 @@ export function InterconnectionAtlas({
     return placed
   }, [projects, projection])
 
+  // Aggregate the points for screen-reader users instead of exposing ~240 tab
+  // stops; mirrors what the colored circles convey visually.
+  const pointsSummary = useMemo(() => {
+    const counts: Partial<Record<QueueProject["status"], number>> = {}
+    for (const p of projects) counts[p.status] = (counts[p.status] ?? 0) + 1
+    const parts = STATUS_ORDER.filter((s) => counts[s]).map(
+      (s) => `${counts[s]} ${STATUS_META[s].label.toLowerCase()}`
+    )
+    return `${projects.length} interconnection-queue projects${parts.length ? `: ${parts.join(", ")}` : ""}.`
+  }, [projects])
+
+  const mapName = mapLabel ?? `United States interconnection atlas, colored by ${valueLabel}`
+
   const showTip = (e: PointerEvent, t: Omit<Tip, "x" | "y">) => {
     const rect = wrapRef.current?.getBoundingClientRect()
-    setTip({
-      ...t,
-      x: e.clientX - (rect?.left ?? 0),
-      y: e.clientY - (rect?.top ?? 0),
+    setTip({ ...t, x: e.clientX - (rect?.left ?? 0), y: e.clientY - (rect?.top ?? 0) })
+  }
+
+  const moveTip = (clientX: number, clientY: number) =>
+    setTip((t) => {
+      if (!t) return t
+      const rect = wrapRef.current?.getBoundingClientRect()
+      return { ...t, x: clientX - (rect?.left ?? 0), y: clientY - (rect?.top ?? 0) }
     })
+
+  const stateRows = (v: number | undefined): Array<[string, string]> => [
+    [valueLabel, v == null ? "n/a" : formatValue(v)],
+  ]
+
+  const onStateFocus = (_e: FocusEvent<SVGPathElement>, id: string, v: number | undefined) => {
+    setFocusId(id)
+    setHoverState(id)
+    setAnnounce(`${nameById.get(id) ?? id}: ${valueLabel} ${v == null ? "no data" : formatValue(v)}`)
+    const el = pathRefs.current.get(id)
+    const wrap = wrapRef.current
+    if (el && wrap) {
+      const r = el.getBoundingClientRect()
+      const w = wrap.getBoundingClientRect()
+      setTip({
+        x: r.left - w.left + r.width / 2,
+        y: r.top - w.top + r.height / 2,
+        title: nameById.get(id) ?? id,
+        accent: v == null ? EMPTY_ACCENT : color(v),
+        rows: stateRows(v),
+      })
+    }
+  }
+
+  const onStateBlur = () => {
+    setHoverState(null)
+    setTip(null)
+  }
+
+  const moveFocus = (fromId: string, dx: number, dy: number) => {
+    const best = nearestInDirection(centroidById, fromId, dx, dy)
+    if (best) {
+      setFocusId(best)
+      pathRefs.current.get(best)?.focus()
+    }
+  }
+
+  const onStateKeyDown = (e: KeyboardEvent<SVGPathElement>, id: string) => {
+    switch (e.key) {
+      case "Enter":
+      case " ":
+      case "Spacebar":
+        e.preventDefault()
+        setAnnounce(
+          selectedStateId === id
+            ? "Selection cleared"
+            : `${nameById.get(id) ?? id} selected`
+        )
+        onSelectState?.(selectedStateId === id ? null : id)
+        break
+      case "Escape":
+        if (selectedStateId != null) {
+          e.preventDefault()
+          setAnnounce("Selection cleared")
+          onSelectState?.(null)
+        }
+        break
+      case "ArrowRight":
+        e.preventDefault()
+        moveFocus(id, 1, 0)
+        break
+      case "ArrowLeft":
+        e.preventDefault()
+        moveFocus(id, -1, 0)
+        break
+      case "ArrowUp":
+        e.preventDefault()
+        moveFocus(id, 0, -1)
+        break
+      case "ArrowDown":
+        e.preventDefault()
+        moveFocus(id, 0, 1)
+        break
+    }
   }
 
   return (
     <div ref={wrapRef} className="atlas" style={{ position: "relative" }}>
+      <style>{ATLAS_CSS}</style>
       <svg
         viewBox={`0 0 ${width} ${height}`}
         style={{ width: "100%", height: "auto", display: "block" }}
-        role="img"
-        aria-label={`United States interconnection atlas colored by ${valueLabel}`}
+        role="group"
+        aria-label={mapName}
+        aria-describedby={summaryId}
       >
-        {/* Choropleth: states filled by the active metric */}
-        <g>
+        {/* Choropleth: each state is a toggle button, keyboard-navigable */}
+        <g
+          role="group"
+          aria-label="US states — arrow keys move between states, Enter or Space selects, Escape clears"
+        >
           {regions.features.map((f) => {
             const id = String(f.id)
             const v = values.get(id)
-            const isHot = hoverState === id || selectedStateId === id
+            const isSelected = selectedStateId === id
+            const isHot = hoverState === id || isSelected
+            const name = f.properties.name
             return (
               <path
                 key={id}
+                ref={(el) => {
+                  if (el) pathRefs.current.set(id, el)
+                  else pathRefs.current.delete(id)
+                }}
+                className="ia-state"
                 d={path(f) ?? undefined}
                 fill={v == null ? EMPTY_FILL : color(v)}
                 stroke={isHot ? "#eaf2ff" : "#0c1622"}
                 strokeWidth={isHot ? 1.4 : 0.5}
-                style={{ cursor: "pointer", transition: "stroke-width 0.1s" }}
+                role="button"
+                tabIndex={id === rovingOwner ? 0 : -1}
+                aria-pressed={isSelected}
+                aria-label={`${name}: ${valueLabel} ${v == null ? "no data" : formatValue(v)}${isSelected ? ", selected" : ""}`}
+                onKeyDown={(e) => onStateKeyDown(e, id)}
+                onFocus={(e) => onStateFocus(e, id, v)}
+                onBlur={onStateBlur}
                 onPointerEnter={(e) => {
                   setHoverState(id)
                   showTip(e, {
-                    title: f.properties.name,
-                    accent: v == null ? "#6c7889" : color(v),
-                    rows: [
-                      [valueLabel, v == null ? "n/a" : formatValue(v)],
-                    ],
+                    title: name,
+                    accent: v == null ? EMPTY_ACCENT : color(v),
+                    rows: stateRows(v),
                   })
                 }}
-                onPointerMove={(e) =>
-                  setTip((t) => {
-                    if (!t) return t
-                    const rect = wrapRef.current?.getBoundingClientRect()
-                    return {
-                      ...t,
-                      x: e.clientX - (rect?.left ?? 0),
-                      y: e.clientY - (rect?.top ?? 0),
-                    }
-                  })
-                }
+                onPointerMove={(e) => moveTip(e.clientX, e.clientY)}
                 onPointerLeave={() => {
                   setHoverState(null)
                   setTip(null)
                 }}
-                onClick={() =>
-                  onSelectState?.(selectedStateId === id ? null : id)
-                }
+                onClick={() => onSelectState?.(isSelected ? null : id)}
               />
             )
           })}
         </g>
 
         {/* ISO/RTO territory outlines, merged from the underlying states */}
-        <g pointerEvents="none">
+        <g pointerEvents="none" aria-hidden="true">
           {isoOutlines.features.map((f) => (
             <path
               key={f.properties.iso}
@@ -192,8 +350,9 @@ export function InterconnectionAtlas({
           })}
         </g>
 
-        {/* Interconnection-queue projects */}
-        <g>
+        {/* Interconnection-queue projects (summarized for AT via the map's
+            aria-describedby; individually hidden to avoid ~240 tab stops) */}
+        <g aria-hidden="true">
           {points.map(({ p, x, y }) => (
             <circle
               key={p.id}
@@ -218,17 +377,7 @@ export function InterconnectionAtlas({
                   ],
                 })
               }
-              onPointerMove={(e) =>
-                setTip((t) => {
-                  if (!t) return t
-                  const rect = wrapRef.current?.getBoundingClientRect()
-                  return {
-                    ...t,
-                    x: e.clientX - (rect?.left ?? 0),
-                    y: e.clientY - (rect?.top ?? 0),
-                  }
-                })
-              }
+              onPointerMove={(e) => moveTip(e.clientX, e.clientY)}
               onPointerLeave={() => setTip(null)}
             />
           ))}
@@ -244,6 +393,13 @@ export function InterconnectionAtlas({
         />
         <StatusLegend x={width - 168} y={height - 116} />
       </svg>
+
+      <div id={summaryId} className="ia-sr-only">
+        {pointsSummary}
+      </div>
+      <div className="ia-sr-only" role="status" aria-live="polite">
+        {announce}
+      </div>
 
       {tip && <Tooltip tip={tip} />}
     </div>
@@ -307,7 +463,7 @@ function ChoroplethLegend({
   const stops = 28
   const ticks = [domain[0], (domain[0] + domain[1]) / 2, domain[1]]
   return (
-    <g transform={`translate(${x},${y})`} pointerEvents="none">
+    <g transform={`translate(${x},${y})`} pointerEvents="none" aria-hidden="true">
       <text fontSize={11} fontWeight={600} fill="#c8d4e2" y={-8}>
         {label}
       </text>
@@ -341,7 +497,7 @@ function ChoroplethLegend({
 
 function StatusLegend({ x, y }: { x: number; y: number }) {
   return (
-    <g transform={`translate(${x},${y})`} pointerEvents="none">
+    <g transform={`translate(${x},${y})`} pointerEvents="none" aria-hidden="true">
       <text fontSize={11} fontWeight={600} fill="#c8d4e2" y={-6}>
         Queue project status
       </text>
