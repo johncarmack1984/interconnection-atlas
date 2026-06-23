@@ -10,3 +10,6 @@ examples/scripts/.cache/
 # Local Claude Code config (not part of the project)
 CLAUDE.md
 .claude/
+
+# Local planning artifacts
+tasks/

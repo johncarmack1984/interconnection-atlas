@@ -4,22 +4,48 @@
   "description": "Interactive D3 map of US grid interconnection: a hosting-capacity choropleth with the interconnection queue and ISO/RTO territories overlaid.",
   "type": "module",
   "license": "MIT",
+  "author": "John Carmack",
+  "homepage": "https://johncarmack1984.github.io/interconnection-atlas/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johncarmack1984/interconnection-atlas.git"
+  },
+  "bugs": {
+    "url": "https://github.com/johncarmack1984/interconnection-atlas/issues"
+  },
+  "keywords": [
+    "d3",
+    "d3-geo",
+    "choropleth",
+    "map",
+    "react",
+    "interconnection",
+    "grid",
+    "iso-rto",
+    "geojson",
+    "topojson",
+    "data-visualization"
+  ],
   "sideEffects": false,
-  "main": "./src/index.ts",
-  "module": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "import": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     }
   },
   "files": [
-    "src"
+    "dist"
   ],
   "scripts": {
     "dev": "bun --filter interconnection-atlas-examples dev",
-    "typecheck": "tsc --noEmit"
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "bun run build"
   },
   "peerDependencies": {
     "react": ">=18",
@@ -35,6 +61,7 @@
     "@types/react-dom": "^19.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "tsup": "^8.5.1",
     "typescript": "^5.7.2"
   },
   "workspaces": [
