@@ -85,6 +85,21 @@ const ATLAS_CSS = `
 }
 `
 
+// Inject the component's scoped styles once per document, however many
+// <InterconnectionAtlas> instances mount — the rules are global (`.ia-state`,
+// `.ia-zoom`, `.ia-sr-only`), so a <style> per instance just duplicates them.
+let stylesInjected = false
+function useAtlasStyles() {
+  useEffect(() => {
+    if (stylesInjected || typeof document === "undefined") return
+    stylesInjected = true
+    const el = document.createElement("style")
+    el.dataset.interconnectionAtlas = ""
+    el.textContent = ATLAS_CSS
+    document.head.appendChild(el)
+  }, [])
+}
+
 export function InterconnectionAtlas({
   regions,
   isoOutlines,
@@ -115,6 +130,7 @@ export function InterconnectionAtlas({
 
   const baseId = useId()
   const summaryId = `${baseId}-summary`
+  useAtlasStyles()
 
   // geoAlbersUsa handles the AK/HI insets; fit it to the drawing area once.
   const projection = useMemo(
@@ -123,10 +139,12 @@ export function InterconnectionAtlas({
   )
   const path = useMemo(() => d3.geoPath(projection), [projection])
 
-  const color = useMemo(
-    () => d3.scaleSequential(colorInterpolator).domain(domain),
-    [colorInterpolator, domain]
-  )
+  const color = useMemo(() => {
+    // Guard a zero-width domain (a single-value metric): a [x, x] domain maps
+    // every value to NaN → an undefined fill, so nudge the upper bound.
+    const [lo, hi] = domain
+    return d3.scaleSequential(colorInterpolator).domain(lo === hi ? [lo, lo + 1] : domain)
+  }, [colorInterpolator, domain])
 
   const radius = useMemo(() => {
     const max = d3.max(projects, (p) => p.capacityMw) ?? 1
@@ -320,7 +338,6 @@ export function InterconnectionAtlas({
 
   return (
     <div ref={wrapRef} className="atlas" style={{ position: "relative" }}>
-      <style>{ATLAS_CSS}</style>
       <div className="ia-zoom">
         <button type="button" onClick={() => zoomBy(1.5)} aria-label="Zoom in" title="Zoom in">
           +

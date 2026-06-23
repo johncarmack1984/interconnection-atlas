@@ -186,14 +186,21 @@ describe("<InterconnectionAtlas>", () => {
 
   it("wires arrow keys to move the single roving tab stop to a neighbor", () => {
     render(<InterconnectionAtlas {...baseProps} />)
-    const ca = screen.getByRole("button", { name: /California/ })
-    expect(ca).toHaveAttribute("tabindex", "0") // first feature owns the tab stop
-    // geoAlbersUsa.fitSize collapses this 2-square fixture, projecting Texas just
-    // *above* California in screen space; ArrowUp is the direction that connects
-    // them here. (Direction semantics on controlled coordinates: see nav.test.ts.)
-    fireEvent.keyDown(ca, { key: "ArrowUp" })
-    expect(screen.getByRole("button", { name: /Texas/ })).toHaveAttribute("tabindex", "0")
-    expect(ca).toHaveAttribute("tabindex", "-1")
+    const stop = () => screen.getAllByRole("button").find((b) => b.getAttribute("tabindex") === "0")!
+    expect(stop()).toHaveAccessibleName(/California/) // first feature owns the stop
+    // Press whichever arrow connects the two states in projected space; the roving
+    // stop moves to the neighbor and exactly one button stays tabbable. This asserts
+    // the keyboard wiring only — per-direction geometry is unit-tested deterministically
+    // in nav.test.ts (geoAlbersUsa.fitSize collapses small fixtures, so the on-screen
+    // direction between two states here isn't worth pinning down).
+    for (const key of ["ArrowUp", "ArrowLeft", "ArrowDown", "ArrowRight"]) {
+      fireEvent.keyDown(stop(), { key })
+      if (stop().getAttribute("aria-label")?.includes("Texas")) break
+    }
+    expect(stop()).toHaveAccessibleName(/Texas/)
+    expect(
+      screen.getAllByRole("button").filter((b) => b.getAttribute("tabindex") === "0")
+    ).toHaveLength(1)
   })
 
   it("summarizes the queue projects for AT via the map's aria-describedby", () => {
@@ -206,5 +213,11 @@ describe("<InterconnectionAtlas>", () => {
   it("has no axe-detectable accessibility violations", async () => {
     const { container } = render(<InterconnectionAtlas {...baseProps} />)
     expect(await axe(container)).toHaveNoViolations()
+  })
+
+  it("injects its scoped styles once per document, not per instance", () => {
+    render(<InterconnectionAtlas {...baseProps} />)
+    render(<InterconnectionAtlas {...baseProps} />)
+    expect(document.querySelectorAll("style[data-interconnection-atlas]")).toHaveLength(1)
   })
 })
