@@ -22,4 +22,17 @@ export default defineConfig({
     strictPort: true,
     open: false,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Split the committed data snapshot + us-atlas geometry (large, changes
+        // rarely) and third-party libs into their own chunks, so the app shell,
+        // the data, and the vendor libs cache independently.
+        manualChunks(id) {
+          if (id.includes("/data/real/") || id.includes("us-atlas")) return "data"
+          if (id.includes("node_modules")) return "vendor"
+        },
+      },
+    },
+  },
 })

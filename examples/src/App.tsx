@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 import * as d3 from "d3"
 import { InterconnectionAtlas } from "interconnection-atlas"
 import { buildSyntheticDataset } from "./data/generate"
 import { loadRealDataset, REAL_META } from "./data/real"
-import type { SourceKey } from "./data/dataset"
+import type { AtlasDataset, SourceKey } from "./data/dataset"
 import { MetricToggle } from "./components/metric-toggle"
 import { DetailPanel } from "./components/detail-panel"
 
@@ -13,22 +13,27 @@ const SOURCE_OPTIONS = [
 ]
 
 export default function App() {
-  // Both datasets are bundled and cheap to build, so they're ready up front and
-  // the toggle is an instant client-side swap — no fetch, fully offline.
-  const synthetic = useMemo(() => buildSyntheticDataset(42), [])
-  const real = useMemo(() => loadRealDataset(), [])
+  // Build a dataset on first use and cache it, so only the active source pays the
+  // build cost — the synthetic generator's point-in-polygon sampling doesn't run
+  // until you toggle to it. Both are an instant client-side swap thereafter.
+  const cache = useRef<Partial<Record<SourceKey, AtlasDataset>>>({})
+  const dataset = useCallback(
+    (s: SourceKey): AtlasDataset =>
+      (cache.current[s] ??= s === "real" ? loadRealDataset() : buildSyntheticDataset(42)),
+    []
+  )
 
   const [source, setSource] = useState<SourceKey>("real")
-  const [metricKey, setMetricKey] = useState<string>(real.metrics[0].key)
+  const [metricKey, setMetricKey] = useState<string>(() => dataset("real").metrics[0].key)
   const [selected, setSelected] = useState<string | null>(null)
 
-  const data = source === "real" ? real : synthetic
+  const data = dataset(source)
   // Metric keys differ between datasets; fall back to the first if it's missing.
   const metric = data.metrics.find((mt) => mt.key === metricKey) ?? data.metrics[0]
 
   const changeSource = (s: SourceKey) => {
     setSource(s)
-    setMetricKey((s === "real" ? real : synthetic).metrics[0].key)
+    setMetricKey(dataset(s).metrics[0].key)
     setSelected(null)
   }
 
