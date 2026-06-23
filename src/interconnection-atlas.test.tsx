@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react"
+import { axe } from "vitest-axe"
 import * as d3 from "d3"
 import {
   InterconnectionAtlas,
@@ -200,5 +201,10 @@ describe("<InterconnectionAtlas>", () => {
     const map = screen.getByRole("group", { name: /Hosting capacity/ })
     const summary = document.getElementById(map.getAttribute("aria-describedby") ?? "")
     expect(summary).toHaveTextContent(/2 interconnection-queue projects/)
+  })
+
+  it("has no axe-detectable accessibility violations", async () => {
+    const { container } = render(<InterconnectionAtlas {...baseProps} />)
+    expect(await axe(container)).toHaveNoViolations()
   })
 })

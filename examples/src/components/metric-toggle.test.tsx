@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { axe } from "vitest-axe"
 import { MetricToggle } from "./metric-toggle"
 
 afterEach(cleanup)
@@ -46,5 +47,12 @@ describe("<MetricToggle>", () => {
     // ArrowLeft from the first option wraps around to the last.
     fireEvent.keyDown(first, { key: "ArrowLeft" })
     expect(onChange).toHaveBeenLastCalledWith("c")
+  })
+
+  it("has no axe-detectable accessibility violations", async () => {
+    const { container } = render(
+      <MetricToggle options={options} value="a" onChange={() => {}} label="Pick one" />
+    )
+    expect(await axe(container)).toHaveNoViolations()
   })
 })
