@@ -27,7 +27,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 'lts/*'
       - run: bun install --frozen-lockfile
       - name: Audit dependencies (informational — dev-only advisories don't block)
         run: bun audit
