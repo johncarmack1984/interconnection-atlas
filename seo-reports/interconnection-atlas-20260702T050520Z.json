@@ -1,0 +1,317 @@
+{
+  "surface": {
+    "id": "interconnection-atlas",
+    "url": "https://johncarmack1984.github.io/interconnection-atlas/",
+    "kind": "site",
+    "gsc_property": null,
+    "github_repo": "johncarmack1984/interconnection-atlas",
+    "positioning": "interconnection-atlas is a free, open-source interactive D3 map of the US grid interconnection queue: a hosting-capacity choropleth with queue projects and ISO/RTO territories, running fully in-browser on real EIA-860M + HIFLD data (with a synthetic mode), by johncarmack1984.",
+    "seed_keywords": [],
+    "surface_markers": [],
+    "namesake_markers": [],
+    "geo_probes": [],
+    "cite_domains": []
+  },
+  "results": [
+    {
+      "provider": "crawl",
+      "tier": 0,
+      "status": "ok",
+      "signals": [
+        {
+          "key": "final_url",
+          "value": "https://johncarmack1984.github.io/interconnection-atlas/",
+          "note": ""
+        },
+        {
+          "key": "status",
+          "value": 200,
+          "note": ""
+        },
+        {
+          "key": "title",
+          "value": "US Interconnection Atlas \u00b7 D3 demo",
+          "note": ""
+        },
+        {
+          "key": "title_len",
+          "value": 34,
+          "note": ""
+        },
+        {
+          "key": "meta_description",
+          "value": "",
+          "note": ""
+        },
+        {
+          "key": "canonical",
+          "value": null,
+          "note": ""
+        },
+        {
+          "key": "html_lang",
+          "value": "en",
+          "note": ""
+        },
+        {
+          "key": "og_tags",
+          "value": 0,
+          "note": ""
+        },
+        {
+          "key": "twitter_tags",
+          "value": 0,
+          "note": ""
+        },
+        {
+          "key": "h1_raw",
+          "value": [],
+          "note": ""
+        },
+        {
+          "key": "raw_html_words",
+          "value": 6,
+          "note": ""
+        },
+        {
+          "key": "jsonld_types_raw",
+          "value": [],
+          "note": ""
+        },
+        {
+          "key": "rendered",
+          "value": "skipped (install 'render' extra for the JS-gap)",
+          "note": ""
+        },
+        {
+          "key": "robots_txt",
+          "value": "404",
+          "note": ""
+        },
+        {
+          "key": "sitemap_xml",
+          "value": "404",
+          "note": ""
+        }
+      ],
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "description.missing",
+          "message": "No meta description."
+        },
+        {
+          "severity": "low",
+          "code": "canonical.missing",
+          "message": "No rel=canonical link."
+        },
+        {
+          "severity": "high",
+          "code": "schema.missing",
+          "message": "No JSON-LD structured data in server HTML (no Person/ProfilePage entity for Google or LLMs)."
+        },
+        {
+          "severity": "high",
+          "code": "render.thin_shell",
+          "message": "Server HTML has only 6 words of text - looks like an unprerendered SPA shell (install the 'render' extra to quantify the JS-gap precisely)."
+        },
+        {
+          "severity": "medium",
+          "code": "sitemap.missing",
+          "message": "No /sitemap.xml (200)."
+        }
+      ],
+      "error": null,
+      "stub_adds": null,
+      "stub_env": [],
+      "stub_contract": null
+    },
+    {
+      "provider": "psi",
+      "tier": 0,
+      "status": "ok",
+      "signals": [
+        {
+          "key": "performance_score",
+          "value": 95,
+          "note": ""
+        },
+        {
+          "key": "LCP",
+          "value": "2.1\u00a0s",
+          "note": ""
+        },
+        {
+          "key": "CLS",
+          "value": "0",
+          "note": ""
+        },
+        {
+          "key": "TBT",
+          "value": "0\u00a0ms",
+          "note": ""
+        },
+        {
+          "key": "SpeedIndex",
+          "value": "4.0\u00a0s",
+          "note": ""
+        }
+      ],
+      "findings": [],
+      "error": null,
+      "stub_adds": null,
+      "stub_env": [],
+      "stub_contract": null
+    },
+    {
+      "provider": "gsc",
+      "tier": 0,
+      "status": "skipped",
+      "signals": [],
+      "findings": [
+        {
+          "severity": "low",
+          "code": "gsc.no_property",
+          "message": "surface has no gsc_property set."
+        }
+      ],
+      "error": null,
+      "stub_adds": null,
+      "stub_env": [],
+      "stub_contract": null
+    },
+    {
+      "provider": "github",
+      "tier": 0,
+      "status": "ok",
+      "signals": [
+        {
+          "key": "description",
+          "value": "Interactive D3 map of US grid interconnection: a hosting-capacity choropleth with the interconnection queue and ISO/RTO territories overlaid (synthetic demo data).",
+          "note": ""
+        },
+        {
+          "key": "topics",
+          "value": [],
+          "note": ""
+        },
+        {
+          "key": "stars",
+          "value": 0,
+          "note": ""
+        },
+        {
+          "key": "homepage",
+          "value": "https://johncarmack1984.github.io/interconnection-atlas/",
+          "note": ""
+        },
+        {
+          "key": "views_14d",
+          "value": 0,
+          "note": ""
+        },
+        {
+          "key": "uniques_14d",
+          "value": 0,
+          "note": ""
+        }
+      ],
+      "findings": [
+        {
+          "severity": "medium",
+          "code": "github.no_topics",
+          "message": "repo has no topics (GitHub search keywords - add your niche terms)."
+        }
+      ],
+      "error": null,
+      "stub_adds": null,
+      "stub_env": [],
+      "stub_contract": null
+    },
+    {
+      "provider": "bing",
+      "tier": 0,
+      "status": "ok",
+      "signals": [
+        {
+          "key": "bing",
+          "value": "HTTP 400",
+          "note": ""
+        }
+      ],
+      "findings": [
+        {
+          "severity": "low",
+          "code": "bing.error",
+          "message": "Bing API returned 400 (is the site verified for this key?)."
+        }
+      ],
+      "error": null,
+      "stub_adds": null,
+      "stub_env": [],
+      "stub_contract": null
+    },
+    {
+      "provider": "trends",
+      "tier": 0,
+      "status": "skipped",
+      "signals": [],
+      "findings": [
+        {
+          "severity": "low",
+          "code": "trends.no_seeds",
+          "message": "surface has no seed_keywords."
+        }
+      ],
+      "error": null,
+      "stub_adds": null,
+      "stub_env": [],
+      "stub_contract": null
+    },
+    {
+      "provider": "dataforseo",
+      "tier": 1,
+      "status": "skipped",
+      "signals": [],
+      "findings": [],
+      "error": null,
+      "stub_adds": null,
+      "stub_env": [],
+      "stub_contract": null
+    },
+    {
+      "provider": "serper",
+      "tier": 1,
+      "status": "skipped",
+      "signals": [],
+      "findings": [
+        {
+          "severity": "low",
+          "code": "serper.no_seeds",
+          "message": "surface has no seed_keywords; skipping."
+        }
+      ],
+      "error": null,
+      "stub_adds": null,
+      "stub_env": [],
+      "stub_contract": null
+    },
+    {
+      "provider": "geo_probe",
+      "tier": 2,
+      "status": "skipped",
+      "signals": [],
+      "findings": [
+        {
+          "severity": "low",
+          "code": "geo.no_config",
+          "message": "set surface_markers + geo_probes on the surface (surfaces.toml) to run GEO probes; skipping."
+        }
+      ],
+      "error": null,
+      "stub_adds": null,
+      "stub_env": [],
+      "stub_contract": null
+    }
+  ]
+}

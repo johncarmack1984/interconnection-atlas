@@ -7,10 +7,112 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%2357d98e' d='M8 1C5.2 1 3 3.2 3 6c0 3.5 5 9 5 9s5-5.5 5-9c0-2.8-2.2-5-5-5zm0 7a2 2 0 1 1 0-4 2 2 0 0 1 0 4z'/%3E%3C/svg%3E"
     />
-    <title>US Interconnection Atlas · D3 demo</title>
+    <title>US Interconnection Atlas · D3 map of the interconnection queue</title>
+    <meta
+      name="description"
+      content="Interactive D3 map of US grid interconnection: hosting-capacity choropleth, queue projects, and ISO/RTO territories. Real EIA-860M data, fully in-browser."
+    />
+    <link rel="canonical" href="https://johncarmack1984.github.io/interconnection-atlas/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="US Interconnection Atlas" />
+    <meta property="og:title" content="US Interconnection Atlas · D3 map of the interconnection queue" />
+    <meta
+      property="og:description"
+      content="Interactive D3 map of US grid interconnection: hosting-capacity choropleth, queue projects, and ISO/RTO territories. Real EIA-860M data, fully in-browser."
+    />
+    <meta property="og:url" content="https://johncarmack1984.github.io/interconnection-atlas/" />
+    <meta
+      property="og:image"
+      content="https://raw.githubusercontent.com/johncarmack1984/interconnection-atlas/main/docs/cover.png"
+    />
+    <meta
+      property="og:image:alt"
+      content="Choropleth map of the US grid interconnection queue with ISO/RTO territory outlines"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="US Interconnection Atlas · D3 map of the interconnection queue" />
+    <meta
+      name="twitter:description"
+      content="Interactive D3 map of US grid interconnection: hosting-capacity choropleth, queue projects, and ISO/RTO territories. Real EIA-860M data, fully in-browser."
+    />
+    <meta
+      name="twitter:image"
+      content="https://raw.githubusercontent.com/johncarmack1984/interconnection-atlas/main/docs/cover.png"
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "US Interconnection Atlas",
+        "alternateName": "interconnection-atlas",
+        "url": "https://johncarmack1984.github.io/interconnection-atlas/",
+        "description": "Interactive D3 map of US grid interconnection: a hosting-capacity choropleth with interconnection-queue projects and ISO/RTO territories, on real EIA-860M data, fully in-browser.",
+        "applicationCategory": "Data visualization",
+        "operatingSystem": "Any (web browser)",
+        "browserRequirements": "Requires JavaScript",
+        "isAccessibleForFree": true,
+        "image": "https://raw.githubusercontent.com/johncarmack1984/interconnection-atlas/main/docs/cover.png",
+        "isBasedOn": ["https://www.eia.gov/electricity/data/eia860m/"],
+        "creator": {
+          "@type": "Person",
+          "name": "John Carmack",
+          "url": "https://johncarmack.com/",
+          "sameAs": ["https://github.com/johncarmack1984"]
+        },
+        "sameAs": ["https://github.com/johncarmack1984/interconnection-atlas"],
+        "license": "https://github.com/johncarmack1984/interconnection-atlas/blob/main/LICENSE"
+      }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Static shell: real content for crawlers and LLM answer engines (the
+           served HTML is otherwise an empty SPA mount), and the loading state
+           for people. React replaces it on mount, so it stays self-contained:
+           inline styles only. -->
+      <div
+        style="
+          min-height: 100vh;
+          box-sizing: border-box;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 40px 24px;
+          background: #10141a;
+          color: #d9dee5;
+          font: 15px/1.65 system-ui, -apple-system, 'Segoe UI', sans-serif;
+        "
+      >
+        <main style="max-width: 620px">
+          <h1 style="margin: 0 0 12px; font-size: 24px; line-height: 1.3; color: #fff">
+            US Interconnection Atlas: the grid interconnection queue on a D3 map
+          </h1>
+          <p style="margin: 0 0 12px">
+            An interactive choropleth of US grid interconnection. Pick a metric and the
+            50 states + DC recolor live; interconnection-queue projects plot as points
+            sized by capacity, with ISO/RTO territories (CAISO, ERCOT, MISO, SPP, PJM,
+            NYISO, ISO-NE) outlined on top. Click a state and the detail panel rescopes
+            to it.
+          </p>
+          <p style="margin: 0 0 12px">
+            Real mode draws from EIA-860M (planned generators with coordinates and
+            nameplate capacity) and HIFLD control-area footprints, bundled as a static
+            snapshot: no backend, everything runs in the browser. Synthetic mode is a
+            seeded illustrative dataset, not actual filings.
+          </p>
+          <p style="margin: 0 0 12px">
+            <a href="https://github.com/johncarmack1984/interconnection-atlas" style="color: #57d98e"
+              >Open source on GitHub</a
+            >, by
+            <a href="https://johncarmack.com" style="color: #57d98e">John Carmack</a>.
+            Built with D3 and React.
+          </p>
+          <p style="margin: 0; color: #8b93a1">Loading the interactive map…</p>
+        </main>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
