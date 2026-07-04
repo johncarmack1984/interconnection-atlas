@@ -10,19 +10,19 @@
     "build:data": "bun run scripts/build-real-data.ts"
   },
   "dependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "topojson-client": "^3.1.0",
     "us-atlas": "^3.0.1"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
     "@types/topojson-client": "^3.1.5",
     "@vitejs/plugin-react": "^6.0.3",
     "typescript": "^6.0.3",
-    "vite": "^8.1.0",
+    "vite": "^8.1.3",
     "xlsx": "^0.18.5"
   }
 }
