@@ -1,5 +1,6 @@
 import { defineConfig } from "vite"
-import react from "@vitejs/plugin-react"
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
+import babel from "@rolldown/plugin-babel";
 import { fileURLToPath } from "node:url"
 
 // Resolve the library from source so edits to ../src hot-reload with no build.
@@ -9,7 +10,7 @@ export default defineConfig({
   // GitHub Pages serves this demo from a project subpath (/interconnection-atlas/).
   // CI sets DEPLOY_BASE; local dev and local builds stay at the root "/".
   base: process.env.DEPLOY_BASE ?? "/",
-  plugins: [react()],
+  plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
   resolve: {
     alias: {
       "interconnection-atlas": fromHere("../src/index.ts"),
