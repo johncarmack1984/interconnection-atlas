@@ -1,15 +1,13 @@
 name: CI
 
-# Full verification on every PR and on pushes to main. Also exposed via
-# workflow_call so release.yml runs the exact same gate before publishing.
-# Mirrors the local checks: typecheck (library + example), tests, the
-# publishable build + a packaging dry-run, and the demo build (Pages parity).
+# Full verification on every PR and on pushes to main. Mirrors the local
+# checks: typecheck (library + example), tests, the library build + a
+# packaging dry-run, and the demo build (Pages parity).
 on:
   pull_request:
   push:
     branches: [main]
   workflow_dispatch:
-  workflow_call:
 
 permissions:
   contents: read
