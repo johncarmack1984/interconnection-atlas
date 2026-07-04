@@ -1,6 +1,7 @@
 {
   "name": "interconnection-atlas",
   "version": "0.1.0",
+  "private": true,
   "description": "Interactive D3 map of US grid interconnection: a hosting-capacity choropleth with the interconnection queue and ISO/RTO territories overlaid.",
   "type": "module",
   "license": "MIT",
@@ -45,8 +46,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "prepublishOnly": "bun run build"
+    "test:coverage": "vitest run --coverage"
   },
   "peerDependencies": {
     "react": ">=18",
