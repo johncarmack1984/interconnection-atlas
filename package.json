@@ -41,7 +41,7 @@
     "dist"
   ],
   "scripts": {
-    "dev": "bun --filter interconnection-atlas-examples dev",
+    "dev": "pnpm --filter interconnection-atlas-examples dev",
     "build": "tsup",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

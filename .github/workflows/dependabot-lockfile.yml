@@ -1,8 +1,8 @@
-name: Dependabot bun lockfile
+name: Dependabot pnpm lockfile
 
-# Dependabot bumps package.json but doesn't maintain bun.lock, so its npm PRs
-# fail `bun install --frozen-lockfile` (this is what sank the first batch). This
-# regenerates bun.lock and commits it back to the PR branch, so CI re-runs
+# Dependabot bumps package.json but doesn't maintain pnpm-lock.yaml, so its npm PRs
+# fail `pnpm install --frozen-lockfile` (this is what sank the first batch). This
+# regenerates pnpm-lock.yaml and commits it back to the PR branch, so CI re-runs
 # against a synced lockfile and the PR can merge.
 #
 # Security:
@@ -10,9 +10,9 @@ name: Dependabot bun lockfile
 #     branch (a plain pull_request token is read-only for Dependabot).
 #   - Gated to dependabot[bot]: any other PR runs under its author's actor, so it
 #     cannot trigger this.
-#   - The paths filter limits it to dependency PRs, and the bun.lock-only commit
+#   - The paths filter limits it to dependency PRs, and the pnpm-lock.yaml-only commit
 #     doesn't match that filter, so it never re-triggers itself (no loop).
-#   - bun skips untrusted packages' lifecycle scripts on install, so a bumped dep
+#   - pnpm skips untrusted packages' lifecycle scripts on install, so a bumped dep
 #     can't run code against the token.
 on:
   pull_request_target:
@@ -37,17 +37,21 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
           token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-      - name: Regenerate bun.lock from the bumped package.json
-        run: bun install
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 'lts/*'
+          cache: pnpm      
+      - name: Regenerate pnpm-lock.yaml from the bumped package.json
+        run: pnpm install
       - name: Commit the refreshed lockfile if it changed
         run: |
-          if git diff --quiet -- bun.lock; then
-            echo "bun.lock already in sync — nothing to do."
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo "pnpm-lock.yaml already in sync — nothing to do."
           else
             git config user.name "dependabot[bot]"
             git config user.email "49699333+dependabot[bot]@users.noreply.github.com"
-            git add bun.lock
-            git commit -m "Regenerate bun.lock"
+            git add pnpm-lock.yaml
+            git commit -m "Regenerate pnpm-lock.yaml"
             git push
           fi

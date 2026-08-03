@@ -3,7 +3,7 @@
  * into the small JSON the example imports, so the deployed demo stays fully
  * static, offline-capable, and deterministic (a fixed snapshot, not a live fetch).
  *
- *   bun run build:data            (from examples/)
+ *   pnpm run build:data            (from examples/)
  *
  * Sources (both public domain):
  *   - ISO/RTO outlines : HIFLD "Independent System Operators" (re-hosted ArcGIS
