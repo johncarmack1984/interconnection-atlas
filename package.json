@@ -42,7 +42,7 @@
   ],
   "scripts": {
     "dev": "pnpm --filter interconnection-atlas-examples dev",
-    "build": "tsup",
+    "build": "tsup && tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

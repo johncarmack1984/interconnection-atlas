@@ -1,0 +1,23 @@
+// Declaration emit for the published `dist`. tsup handles the JS bundle; `tsc`
+// handles the types (see tsup.config.ts for why they're split). Emits one .d.ts
+// per source file rather than a single rolled-up one — all of them ship, since
+// package.json `files` is `["dist"]`.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "declarationMap": true,
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src"],
+  // vitest-axe.d.ts augments Vitest's `expect` types — test-only, never shipped.
+  "exclude": [
+    "dist",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "src/vitest-axe.d.ts"
+  ]
+}
