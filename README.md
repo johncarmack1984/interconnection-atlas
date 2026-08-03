@@ -46,7 +46,7 @@ It depends only on `d3` (and `react`/`react-dom` as peers). It takes already-pro
 
 The map toggles between real and synthetic data (top-right). Both are bundled as a fixed snapshot, no backend, no runtime fetch, so the demo stays fully static, deterministic, and offline-capable.
 
-**Real mode** draws from two free, public-domain sources, vendored into small committed JSON by `bun run build:data` (see `examples/scripts/build-real-data.ts`):
+**Real mode** draws from two free, public-domain sources, vendored into small committed JSON by `pnpm run build:data` (see `examples/scripts/build-real-data.ts`):
 
 - **Proposed generators**: [EIA-860M](https://www.eia.gov/electricity/data/eia860m), the monthly inventory of planned generators: ~2,000 projects with real coordinates, nameplate MW, technology, and development status. These power both the queue points and the per-state choropleth (proposed capacity, project count, and a proposed-÷-existing "queue pressure" ratio normalized with EIA-860M existing capacity).
 - **ISO/RTO footprints**: [HIFLD](https://hifld-geoplatform.hub.arcgis.com) "Control Areas" (balancing-authority boundaries; for these seven the BA footprint is the ISO footprint), Douglas-Peucker-simplified for the web.
@@ -57,14 +57,14 @@ Honest scope: EIA-860M "planned" generators are a subset of the full interconnec
 
 ## Run it
 
-A Bun workspace: the library is the root, `examples/` is a Vite app that imports it from source (aliased, so edits to `src/` hot-reload).
+A pnpm workspace: the library is the root, `examples/` is a Vite app that imports it from source (aliased, so edits to `src/` hot-reload).
 
 ```bash
-bun install
-bun run dev      # → http://localhost:47654
+pnpm install
+pnpm run dev      # → http://localhost:47654
 ```
 
-Port is pinned with `strictPort`. `bun run typecheck` type-checks the library in isolation. `cd examples && bun run build:data` regenerates the vendored real-data JSON from EIA-860M + HIFLD. The outputs are committed, so you only need this to refresh the snapshot.
+Port is pinned with `strictPort`. `pnpm run typecheck` type-checks the library in isolation. `cd examples && pnpm run build:data` regenerates the vendored real-data JSON from EIA-860M + HIFLD. The outputs are committed, so you only need this to refresh the snapshot.
 
 ## Stack
 
