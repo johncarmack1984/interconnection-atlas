@@ -26,7 +26,7 @@ import * as XLSX from "xlsx"
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
-import { ISO_META, isoForState } from "../src/data/iso-regions"
+import { ISO_META, isoForState } from "../src/data/iso-regions.ts"
 import {
   FIPS_NAME,
   POSTAL_FIPS,
@@ -42,7 +42,7 @@ import {
   statusFor,
   sumByState,
   techToFuel,
-} from "./transforms"
+} from "./transforms.ts"
 
 const here = dirname(fileURLToPath(import.meta.url))
 const outDir = resolve(here, "../src/data/real")

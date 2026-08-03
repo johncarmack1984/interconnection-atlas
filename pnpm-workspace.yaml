@@ -3,3 +3,9 @@ packages:
 
 allowBuilds:
   esbuild: false
+
+# tsup still pins esbuild ^0.27.0, which is inside the GHSA range for the
+# dev-server arbitrary-file-read advisory. Vite already accepts ^0.28, so force
+# the whole tree onto the patched line; drop this when tsup widens its range.
+overrides:
+  esbuild: ^0.28.1
