@@ -19,7 +19,7 @@
     "@babel/core": "^8.0.1",
     "@rolldown/plugin-babel": "^0.2.3",
     "@types/babel__core": "^7.20.5",
-    "@types/node": "24",
+    "@types/node": "26",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@types/topojson-client": "^3.1.5",
