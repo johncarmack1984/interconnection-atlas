@@ -12,3 +12,8 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 5
+    ignore:
+      # @types/node tracks the runtime major: CI runs on lts/* (Node 24 today),
+      # so the 26 types wait for the LTS line to move and get bumped by hand.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
