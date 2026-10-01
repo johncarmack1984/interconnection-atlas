@@ -10,7 +10,7 @@
     "build:data": "node scripts/build-real-data.ts"
   },
   "dependencies": {
-    "react": "^19.2.8",
+    "react": "^19.3.0",
     "react-dom": "^19.2.8",
     "topojson-client": "^3.1.0",
     "us-atlas": "^3.0.1"
@@ -20,7 +20,7 @@
     "@rolldown/plugin-babel": "^0.2.4",
     "@types/babel__core": "^7.20.5",
     "@types/node": "24",
-    "@types/react": "^19.2.18",
+    "@types/react": "^19.3.0",
     "@types/react-dom": "^19.2.5",
     "@types/topojson-client": "^3.1.5",
     "@vitejs/plugin-react": "^6.1.1",
