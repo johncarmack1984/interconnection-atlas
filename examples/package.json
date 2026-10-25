@@ -10,8 +10,8 @@
     "build:data": "node scripts/build-real-data.ts"
   },
   "dependencies": {
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "topojson-client": "^3.1.0",
     "us-atlas": "^3.0.1"
   },
