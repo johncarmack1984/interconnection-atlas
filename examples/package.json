@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "@babel/core": "^8.0.9",
-    "@rolldown/plugin-babel": "^0.2.4",
+    "@rolldown/plugin-babel": "^0.3.0",
     "@types/babel__core": "^7.20.5",
     "@types/node": "26",
     "@types/react": "^19.3.0",
